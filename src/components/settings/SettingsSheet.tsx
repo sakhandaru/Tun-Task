@@ -91,6 +91,13 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
               <span className="text-[10px] font-mono text-[var(--color-text-muted)]">LIHAT →</span>
             </button>
             <button
+              onClick={() => setView('routines')}
+              className="w-full flex items-center justify-between p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] active:scale-[0.98] transition-transform"
+            >
+              <span className="text-sm font-medium">Kelola Paket Rutinitas</span>
+              <span className="text-[10px] font-mono text-[var(--color-text-muted)]">ATUR →</span>
+            </button>
+            <button
               onClick={() => void loginGoogle()}
               className="w-full flex items-center justify-between p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] active:scale-[0.98] transition-transform"
             >
