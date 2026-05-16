@@ -12,6 +12,7 @@ import {
 } from '../../lib/habits/stats'
 import { HabitContributionGraph } from './HabitContributionGraph'
 import { HabitMonthCalendar } from './HabitMonthCalendar'
+import { ChallengeModal } from '../ChallengeModal'
 
 interface HabitDetailSheetProps {
   habit: Habit | null
@@ -26,6 +27,7 @@ export function HabitDetailSheet({ habit, onClose }: HabitDetailSheetProps) {
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
+  const [showChallenge, setShowChallenge] = useState(false)
 
   const monthDays = useMemo(
     () => (habit ? buildMonthGrid(habit, logs, year, month) : []),
@@ -97,7 +99,7 @@ export function HabitDetailSheet({ habit, onClose }: HabitDetailSheetProps) {
           {!doneToday && todayLog?.status !== 'skipped' && (
             <button
               type="button"
-              onClick={() => void skipHabit(habit.id, today).then(refresh)}
+              onClick={() => setShowChallenge(true)}
               className="ml-auto font-mono text-[10px] text-[var(--color-text-muted)]"
             >
               LEWATI
@@ -152,6 +154,14 @@ export function HabitDetailSheet({ habit, onClose }: HabitDetailSheetProps) {
           </button>
         </div>
       </div>
+      <ChallengeModal
+        open={showChallenge}
+        title="Lewati Habit?"
+        description="Melewati satu hari akan merusak rantai konsistensi Anda."
+        phrase="SAYA MENUNDA"
+        onConfirm={() => void skipHabit(habit.id, today).then(refresh)}
+        onClose={() => setShowChallenge(false)}
+      />
     </div>
   )
 }

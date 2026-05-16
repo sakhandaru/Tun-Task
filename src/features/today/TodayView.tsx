@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
 import { HabitMiniHeatmap } from '../../components/habits/HabitMiniHeatmap'
+import { ChallengeModal } from '../../components/ChallengeModal'
 import {
   useAllHabitLogs,
   useRefreshToken,
@@ -37,6 +39,36 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
   const routines = useRoutines(token)
   const today = todayKey()
   const dateLabel = format(nowInTz(), 'EEEE, d MMMM', { locale: id })
+
+  const [challenge, setChallenge] = useState<{
+    open: boolean
+    title: string
+    description: string
+    onConfirm: () => void
+  }>({
+    open: false,
+    title: '',
+    description: '',
+    onConfirm: () => {},
+  })
+
+  const handleSnooze = (todoId: string) => {
+    setChallenge({
+      open: true,
+      title: 'Tunda Tugas?',
+      description: 'Menunda tugas akan menumpuk beban Anda di hari esok.',
+      onConfirm: () => void snoozeTodo(todoId).then(refresh),
+    })
+  }
+
+  const handleSkipHabit = (habitId: string) => {
+    setChallenge({
+      open: true,
+      title: 'Lewati Habit?',
+      description: 'Konsistensi adalah kunci. Melewati hari ini berarti merusak momentum Anda.',
+      onConfirm: () => void skipHabit(habitId, today).then(refresh),
+    })
+  }
 
   return (
     <div className="space-y-8 pt-2">
@@ -119,7 +151,7 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
                 {!todo.completedAt && (
                   <button
                     type="button"
-                    onClick={() => void snoozeTodo(todo.id).then(refresh)}
+                    onClick={() => handleSnooze(todo.id)}
                     className="shrink-0 font-mono text-[10px] text-[var(--color-text-muted)]"
                   >
                     BESOK
@@ -169,7 +201,7 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
                   {!done && log?.status !== 'skipped' && (
                     <button
                       type="button"
-                      onClick={() => void skipHabit(habit.id, today).then(refresh)}
+                      onClick={() => handleSkipHabit(habit.id)}
                       className="shrink-0 font-mono text-[10px] text-[var(--color-text-muted)]"
                     >
                       LEWATI
@@ -181,6 +213,14 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
           </ul>
         )}
       </section>
+      <ChallengeModal
+        open={challenge.open}
+        title={challenge.title}
+        description={challenge.description}
+        phrase="SAYA MENUNDA"
+        onConfirm={challenge.onConfirm}
+        onClose={() => setChallenge((prev) => ({ ...prev, open: false }))}
+      />
     </div>
   )
 }
