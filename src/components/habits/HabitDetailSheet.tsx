@@ -120,20 +120,37 @@ export function HabitDetailSheet({ habit, onClose }: HabitDetailSheetProps) {
           <HabitContributionGraph cells={contribution} />
         </div>
 
-        <button
-          type="button"
-          onClick={() =>
-            void db.habits
-              .update(habit.id, { archivedAt: new Date().toISOString() })
-              .then(() => {
-                refresh()
-                onClose()
-              })
-          }
-          className="w-full py-3 font-mono text-xs tracking-widest text-[var(--color-text-muted)] uppercase"
-        >
-          Arsipkan habit
-        </button>
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              void db.habits
+                .update(habit.id, { archivedAt: new Date().toISOString() })
+                .then(() => {
+                  refresh()
+                  onClose()
+                })
+            }
+            className="w-full py-3 font-mono text-[10px] tracking-widest text-[var(--color-text-muted)] uppercase"
+          >
+            Arsipkan habit (Sembunyikan)
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm('Hapus habit ini dan semua riwayatnya secara permanen?')) {
+                void db.habits.delete(habit.id).then(() => {
+                  void db.habitLogs.where('habitId').equals(habit.id).delete()
+                  refresh()
+                  onClose()
+                })
+              }
+            }}
+            className="w-full py-3 font-mono text-[10px] tracking-widest text-red-500 uppercase opacity-60 hover:opacity-100"
+          >
+            Hapus Permanen
+          </button>
+        </div>
       </div>
     </div>
   )
