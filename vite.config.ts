@@ -15,8 +15,8 @@ export default defineConfig({
         name: 'TunTask',
         short_name: 'TunTask',
         description: 'Todo & habit tracker yang satset',
-        theme_color: '#0f172a',
-        background_color: '#0f172a',
+        theme_color: '#000000',
+        background_color: '#000000',
         display: 'standalone',
         start_url: '/',
         icons: [
