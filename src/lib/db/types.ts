@@ -10,6 +10,7 @@ export interface Todo {
   dueDate?: string // YYYY-MM-DD
   scheduledAt?: string // ISO
   completedAt?: string
+  cancelledAt?: string
   createdAt: string
   priority?: boolean
 }

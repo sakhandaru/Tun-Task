@@ -20,8 +20,23 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   const [isAdding, setIsAdding] = useState(false)
   const [newName, setNewName] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [isConnected, setIsConnected] = useState(false)
+
+  useState(() => {
+    const token = localStorage.getItem('gcal_token')
+    const expiry = localStorage.getItem('gcal_token_expiry')
+    if (token && expiry && Date.now() < parseInt(expiry)) {
+      setIsConnected(true)
+    }
+  })
 
   if (!open) return null
+
+  const handleDisconnect = () => {
+    localStorage.removeItem('gcal_token')
+    localStorage.removeItem('gcal_token_expiry')
+    setIsConnected(false)
+  }
 
   const handleClose = () => {
     setView('menu')
@@ -98,14 +113,28 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
               <span className="text-[10px] font-mono text-[var(--color-text-muted)]">ATUR →</span>
             </button>
             <button
-              onClick={() => void loginGoogle()}
-              className="w-full flex items-center justify-between p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] active:scale-[0.98] transition-transform"
+              onClick={() => (isConnected ? handleDisconnect() : void loginGoogle())}
+              className={`w-full flex items-center justify-between p-4 rounded-xl border active:scale-[0.98] transition-all ${
+                isConnected
+                  ? 'border-green-500/30 bg-green-500/5'
+                  : 'border-[var(--color-border)] bg-[var(--color-bg-secondary)]'
+              }`}
             >
               <div className="text-left">
-                <span className="block text-sm font-medium">Hubungkan Google Calendar</span>
-                <span className="block text-[10px] text-[var(--color-text-muted)]">Aktifkan notifikasi agenda</span>
+                <span className={`block text-sm font-medium ${isConnected ? 'text-green-500' : ''}`}>
+                  {isConnected ? 'Google Calendar Terhubung' : 'Hubungkan Google Calendar'}
+                </span>
+                <span className="block text-[10px] text-[var(--color-text-muted)]">
+                  {isConnected ? 'Klik untuk putuskan akses' : 'Aktifkan notifikasi agenda'}
+                </span>
               </div>
-              <span className="text-[10px] font-mono text-[var(--color-accent)]">HUBUNGKAN →</span>
+              <span
+                className={`text-[10px] font-mono ${
+                  isConnected ? 'text-green-500' : 'text-[var(--color-accent)]'
+                }`}
+              >
+                {isConnected ? 'AKTIF ✓' : 'HUBUNGKAN →'}
+              </span>
             </button>
           </div>
         )}

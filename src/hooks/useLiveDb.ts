@@ -18,6 +18,7 @@ export function useTodayTodos(token: number) {
       const today = todayKey()
       const all = await db.todos.toArray()
       const filtered = all.filter((t) => {
+        if (t.cancelledAt) return false
         if (!t.completedAt) {
           return !t.dueDate || t.dueDate <= today
         }
@@ -121,6 +122,7 @@ export function useTomorrowTodos(token: number) {
       const tomorrow = dateKey(addDays(nowInTz(), 1))
       const all = await db.todos.toArray()
       const filtered = all.filter((t) => {
+        if (t.cancelledAt) return false
         if (!t.completedAt) {
           return t.dueDate === tomorrow
         }
@@ -203,7 +205,9 @@ export function useScoreStats(token: number) {
         })
 
         const dayLogs = allLogs.filter(l => l.date === dateK)
-        const dayTodos = allTodos.filter(t => t.dueDate === dateK || (t.scheduledAt && dateKey(new Date(t.scheduledAt)) === dateK))
+        const dayTodos = allTodos.filter(t => 
+          !t.cancelledAt && (t.dueDate === dateK || (t.scheduledAt && dateKey(new Date(t.scheduledAt)) === dateK))
+        )
 
         const totalItems = dayHabits.length + dayTodos.length
         if (totalItems === 0) return 100

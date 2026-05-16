@@ -1,17 +1,19 @@
-import { useCallback, useEffect, useState } from 'react'
-import { FabPlus } from './components/FabPlus'
-import { HabitDetailSheet } from './components/habits/HabitDetailSheet'
-import { SpotlightModal } from './components/SpotlightModal'
+import { useCallback, useEffect, useState, lazy, Suspense } from 'react'
 import { SwipePages } from './components/SwipePages'
 import { RefreshProvider, useRefresh } from './context/RefreshContext'
 import { HabitsView } from './features/habits/HabitsView'
 import { ReviewView } from './features/review/ReviewView'
 import { TodayView } from './features/today/TodayView'
 import { TomorrowView } from './features/tomorrow/TomorrowView'
-import { SettingsSheet } from './components/settings/SettingsSheet'
-import type { Habit } from './lib/db/types'
 import { seedDefaultsIfEmpty } from './lib/db/schema'
 import { initGoogleAuth } from './lib/gcal'
+import type { Habit } from './lib/db/types'
+
+// Lazy loaded components for better performance
+const FabPlus = lazy(() => import('./components/FabPlus').then(m => ({ default: m.FabPlus })))
+const HabitDetailSheet = lazy(() => import('./components/habits/HabitDetailSheet').then(m => ({ default: m.HabitDetailSheet })))
+const SpotlightModal = lazy(() => import('./components/SpotlightModal').then(m => ({ default: m.SpotlightModal })))
+const SettingsSheet = lazy(() => import('./components/settings/SettingsSheet').then(m => ({ default: m.SettingsSheet })))
 
 function AppContent() {
   const [ready, setReady] = useState(false)
@@ -65,17 +67,16 @@ function AppContent() {
         defaultIndex={0}
       />
 
-      <FabPlus onClick={() => setQuickAddOpen(true)} hidden={quickAddOpen || !!selectedHabit} />
-
-      <SpotlightModal
-        open={quickAddOpen}
-        onClose={() => setQuickAddOpen(false)}
-        onSaved={refresh}
-      />
-
-      <HabitDetailSheet habit={selectedHabit} onClose={() => setSelectedHabit(null)} />
-
-      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <Suspense fallback={null}>
+        <FabPlus onClick={() => setQuickAddOpen(true)} hidden={quickAddOpen || !!selectedHabit} />
+        <SpotlightModal
+          open={quickAddOpen}
+          onClose={() => setQuickAddOpen(false)}
+          onSaved={refresh}
+        />
+        <HabitDetailSheet habit={selectedHabit} onClose={() => setSelectedHabit(null)} />
+        <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      </Suspense>
     </>
   )
 }

@@ -12,6 +12,7 @@ import {
 } from '../../hooks/useLiveDb'
 import { formatDisplayTime, nowInTz, todayKey } from '../../lib/dates'
 import {
+  cancelTodo,
   completeTodo,
   loadRoutineItems,
   skipHabit,
@@ -67,6 +68,15 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
       title: 'Lewati Habit?',
       description: 'Konsistensi adalah kunci. Melewati hari ini berarti merusak momentum Anda.',
       onConfirm: () => void skipHabit(habitId, today).then(refresh),
+    })
+  }
+
+  const handleCancelTodo = (todoId: string) => {
+    setChallenge({
+      open: true,
+      title: 'Batalkan Tugas?',
+      description: 'Tugas ini akan dianggap tidak ada dan tidak mempengaruhi persentase progres.',
+      onConfirm: () => void cancelTodo(todoId).then(refresh),
     })
   }
 
@@ -149,13 +159,22 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
                   </p>
                 </div>
                 {!todo.completedAt && (
-                  <button
-                    type="button"
-                    onClick={() => handleSnooze(todo.id)}
-                    className="shrink-0 font-mono text-[10px] text-[var(--color-text-muted)]"
-                  >
-                    BESOK
-                  </button>
+                  <div className="flex gap-4">
+                    <button
+                      type="button"
+                      onClick={() => handleCancelTodo(todo.id)}
+                      className="shrink-0 font-mono text-[10px] text-red-500/40 hover:text-red-500 transition-colors"
+                    >
+                      BATAL
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSnooze(todo.id)}
+                      className="shrink-0 font-mono text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+                    >
+                      BESOK
+                    </button>
+                  </div>
                 )}
               </li>
             ))}

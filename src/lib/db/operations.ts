@@ -39,6 +39,10 @@ export async function uncompleteTodo(id: string): Promise<void> {
   await db.todos.update(id, { completedAt: undefined })
 }
 
+export async function cancelTodo(id: string): Promise<void> {
+  await db.todos.update(id, { cancelledAt: new Date().toISOString() })
+}
+
 export async function snoozeTodo(id: string, days = 1): Promise<void> {
   const todo = await db.todos.get(id)
   if (!todo) return
