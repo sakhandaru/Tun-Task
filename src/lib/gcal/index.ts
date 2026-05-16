@@ -1,3 +1,9 @@
+declare global {
+  interface Window {
+    google: any
+  }
+}
+
 import type { Todo } from '../db/types'
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_CLIENT_ID_HERE'
