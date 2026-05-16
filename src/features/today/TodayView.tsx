@@ -8,7 +8,7 @@ import {
   useTodayHabits,
   useTodayTodos,
 } from '../../hooks/useLiveDb'
-import { formatDisplayDate, formatDisplayTime, nowInTz, todayKey } from '../../lib/dates'
+import { formatDisplayTime, nowInTz, todayKey } from '../../lib/dates'
 import {
   completeTodo,
   loadRoutineItems,

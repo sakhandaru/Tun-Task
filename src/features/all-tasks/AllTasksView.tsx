@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { format, isBefore, isAfter, addDays, startOfDay } from 'date-fns'
+import { format, addDays } from 'date-fns'
 import { id } from 'date-fns/locale'
 import { useRefreshToken, useAllTodos } from '../../hooks/useLiveDb'
 import { todayKey, parseDateKey, formatDisplayTime, nowInTz } from '../../lib/dates'
