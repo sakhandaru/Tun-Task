@@ -11,6 +11,7 @@ import { TomorrowView } from './features/tomorrow/TomorrowView'
 import { SettingsSheet } from './components/settings/SettingsSheet'
 import type { Habit } from './lib/db/types'
 import { seedDefaultsIfEmpty } from './lib/db/schema'
+import { initGoogleAuth } from './lib/gcal'
 
 function AppContent() {
   const [ready, setReady] = useState(false)
@@ -20,6 +21,7 @@ function AppContent() {
   const { refresh } = useRefresh()
 
   useEffect(() => {
+    initGoogleAuth()
     void seedDefaultsIfEmpty().then(() => setReady(true))
   }, [])
 

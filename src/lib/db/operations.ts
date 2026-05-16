@@ -3,6 +3,7 @@ import { dateKey, nowInTz, todayKey } from '../dates'
 import type { ParsedHabit, ParsedTodo } from '../nlp/types'
 import { db } from './schema'
 import type { Habit, HabitLog, Routine, Todo, Weekday } from './types'
+import { syncTodoToCalendar } from '../gcal'
 
 export async function createTodoFromParsed(parsed: ParsedTodo): Promise<Todo> {
   const todo: Todo = {
@@ -14,6 +15,7 @@ export async function createTodoFromParsed(parsed: ParsedTodo): Promise<Todo> {
     priority: parsed.priority,
   }
   await db.todos.add(todo)
+  void syncTodoToCalendar(todo)
   return todo
 }
 

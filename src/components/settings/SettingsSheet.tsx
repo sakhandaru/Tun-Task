@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useRefreshToken, useRoutines } from '../../hooks/useLiveDb'
 import { createRoutine, deleteRoutine, updateRoutine } from '../../lib/db/operations'
 import type { Routine, RoutineItem } from '../../lib/db/types'
+import { loginGoogle } from '../../lib/gcal'
 
 import { AllTasksView } from '../../features/all-tasks/AllTasksView'
 
@@ -90,11 +91,14 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
               <span className="text-[10px] font-mono text-[var(--color-text-muted)]">LIHAT →</span>
             </button>
             <button
-              onClick={() => setView('routines')}
+              onClick={() => void loginGoogle()}
               className="w-full flex items-center justify-between p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] active:scale-[0.98] transition-transform"
             >
-              <span className="text-sm font-medium">Kelola Paket Rutinitas</span>
-              <span className="text-[10px] font-mono text-[var(--color-text-muted)]">ATUR →</span>
+              <div className="text-left">
+                <span className="block text-sm font-medium">Hubungkan Google Calendar</span>
+                <span className="block text-[10px] text-[var(--color-text-muted)]">Aktifkan notifikasi agenda</span>
+              </div>
+              <span className="text-[10px] font-mono text-[var(--color-accent)]">HUBUNGKAN →</span>
             </button>
           </div>
         )}
