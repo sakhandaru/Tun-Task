@@ -83,6 +83,7 @@ export function SwipePages({
             className={`h-full w-full shrink-0 snap-start overflow-y-auto px-4 pb-28 transition-opacity duration-300 ${
               index === i ? 'opacity-100' : 'opacity-95'
             }`}
+            style={{ scrollSnapStop: 'always' }}
           >
             {page}
           </div>
