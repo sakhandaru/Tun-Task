@@ -8,6 +8,7 @@ export interface ParsedTodo {
   dueDate?: string
   scheduledAt?: string
   priority?: boolean
+  project?: string
   confidence: 'high' | 'low'
 }
 

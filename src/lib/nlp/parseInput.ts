@@ -197,6 +197,9 @@ export function parseInput(raw: string): ParseResult {
 
   const shouldBeHabit = forceHabit || hasHabitKeyword || isDaily || days.length > 0
 
+  const projectMatch = title.match(/\[\[(.*?)\]\]/)
+  const project = projectMatch ? projectMatch[1] : undefined
+
   let item: ParsedItem | null = null
 
   if (shouldBeHabit && title) {
@@ -214,6 +217,7 @@ export function parseInput(raw: string): ParseResult {
       dueDate: dateInfo.dueDate,
       scheduledAt: dateInfo.scheduledAt,
       priority,
+      project,
       confidence: dateInfo.dueDate ? 'high' : 'low',
     }
   }

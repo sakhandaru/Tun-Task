@@ -4,6 +4,7 @@ import type { ParsedHabit, ParsedTodo } from '../nlp/types'
 import { db } from './schema'
 import type { Habit, HabitLog, Routine, Todo, Weekday } from './types'
 import { syncTodoToCalendar } from '../gcal'
+import { scheduleSync } from '../sync/syncManager'
 
 export async function createTodoFromParsed(parsed: ParsedTodo): Promise<Todo> {
   const todo: Todo = {
@@ -13,9 +14,11 @@ export async function createTodoFromParsed(parsed: ParsedTodo): Promise<Todo> {
     scheduledAt: parsed.scheduledAt,
     createdAt: new Date().toISOString(),
     priority: parsed.priority,
+    project: parsed.project,
   }
   await db.todos.add(todo)
   void syncTodoToCalendar(todo)
+  scheduleSync()
   return todo
 }
 
@@ -28,19 +31,23 @@ export async function createHabitFromParsed(parsed: ParsedHabit): Promise<Habit>
     createdAt: new Date().toISOString(),
   }
   await db.habits.add(habit)
+  scheduleSync()
   return habit
 }
 
 export async function completeTodo(id: string): Promise<void> {
   await db.todos.update(id, { completedAt: new Date().toISOString() })
+  scheduleSync()
 }
 
 export async function uncompleteTodo(id: string): Promise<void> {
   await db.todos.update(id, { completedAt: undefined })
+  scheduleSync()
 }
 
 export async function cancelTodo(id: string): Promise<void> {
   await db.todos.update(id, { cancelledAt: new Date().toISOString() })
+  scheduleSync()
 }
 
 export async function snoozeTodo(id: string, days = 1): Promise<void> {
@@ -48,10 +55,12 @@ export async function snoozeTodo(id: string, days = 1): Promise<void> {
   if (!todo) return
   const base = todo.dueDate ? new Date(todo.dueDate + 'T12:00:00') : nowInTz()
   await db.todos.update(id, { dueDate: dateKey(addDays(base, days)) })
+  scheduleSync()
 }
 
 export async function deleteTodo(id: string): Promise<void> {
   await db.todos.delete(id)
+  scheduleSync()
 }
 
 export function isHabitDueToday(habit: Habit, day: Weekday): boolean {
@@ -68,10 +77,12 @@ export async function toggleHabitDone(habitId: string, date: string): Promise<vo
   const existing = await getHabitLog(habitId, date)
   if (existing?.status === 'done') {
     await db.habitLogs.delete(existing.id)
+    scheduleSync()
     return
   }
   if (existing) {
     await db.habitLogs.update(existing.id, { status: 'done' })
+    scheduleSync()
     return
   }
   await db.habitLogs.add({
@@ -80,12 +91,14 @@ export async function toggleHabitDone(habitId: string, date: string): Promise<vo
     date,
     status: 'done',
   })
+  scheduleSync()
 }
 
 export async function skipHabit(habitId: string, date: string): Promise<void> {
   const existing = await getHabitLog(habitId, date)
   if (existing) {
     await db.habitLogs.update(existing.id, { status: 'skipped' })
+    scheduleSync()
   } else {
     await db.habitLogs.add({
       id: crypto.randomUUID(),
@@ -93,6 +106,7 @@ export async function skipHabit(habitId: string, date: string): Promise<void> {
       date,
       status: 'skipped',
     })
+    scheduleSync()
   }
 }
 

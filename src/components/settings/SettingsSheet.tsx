@@ -1,17 +1,19 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRefreshToken, useRoutines } from '../../hooks/useLiveDb'
 import { createRoutine, deleteRoutine, updateRoutine } from '../../lib/db/operations'
 import type { Routine, RoutineItem } from '../../lib/db/types'
 import { loginGoogle } from '../../lib/gcal'
 
 import { AllTasksView } from '../../features/all-tasks/AllTasksView'
+import { getSyncState, subscribeSyncState, triggerSync } from '../../lib/sync/syncManager'
+import type { SyncState } from '../../lib/sync/syncManager'
 
 interface SettingsSheetProps {
   open: boolean
   onClose: () => void
 }
 
-type View = 'menu' | 'routines' | 'all-tasks'
+type View = 'menu' | 'routines' | 'all-tasks' | 'obsidian-sync'
 
 export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   const { token, refresh } = useRefreshToken()
@@ -22,6 +24,21 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isConnected, setIsConnected] = useState(false)
 
+  // Obsidian sync configuration states
+  const [pat, setPat] = useState(localStorage.getItem('tuntask_sync_pat') || '')
+  const [repo, setRepo] = useState(localStorage.getItem('tuntask_sync_repo') || '')
+  const [tasksPath, setTasksPath] = useState(localStorage.getItem('tuntask_sync_tasks_path') || 'TunTask/tasks.md')
+  const [habitsPath, setHabitsPath] = useState(localStorage.getItem('tuntask_sync_habits_path') || 'TunTask/habits.md')
+  const [autoSync, setAutoSync] = useState(localStorage.getItem('tuntask_sync_auto') !== 'false')
+  const [syncState, setSyncState] = useState<SyncState>(getSyncState())
+
+  useEffect(() => {
+    if (!open) return
+    return subscribeSyncState((newState) => {
+      setSyncState(newState)
+    })
+  }, [open])
+
   useState(() => {
     const token = localStorage.getItem('gcal_token')
     const expiry = localStorage.getItem('gcal_token_expiry')
@@ -29,6 +46,20 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
       setIsConnected(true)
     }
   })
+
+  const handleSaveSyncConfig = (key: string, value: string) => {
+    localStorage.setItem(key, value)
+    if (key === 'tuntask_sync_pat') setPat(value)
+    if (key === 'tuntask_sync_repo') setRepo(value)
+    if (key === 'tuntask_sync_tasks_path') setTasksPath(value)
+    if (key === 'tuntask_sync_habits_path') setHabitsPath(value)
+  }
+
+  const handleToggleAutoSync = () => {
+    const newVal = !autoSync
+    setAutoSync(newVal)
+    localStorage.setItem('tuntask_sync_auto', String(newVal))
+  }
 
   if (!open) return null
 
@@ -85,6 +116,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
               {view === 'menu' && 'Menu Utama'}
               {view === 'routines' && 'Paket Rutinitas'}
               {view === 'all-tasks' && 'Semua Tugas'}
+              {view === 'obsidian-sync' && 'Sinkronisasi Obsidian'}
             </h2>
           </div>
           <button
@@ -110,6 +142,13 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
               className="w-full flex items-center justify-between p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] active:scale-[0.98] transition-transform"
             >
               <span className="text-sm font-medium">Kelola Paket Rutinitas</span>
+              <span className="text-[10px] font-mono text-[var(--color-text-muted)]">ATUR →</span>
+            </button>
+            <button
+              onClick={() => setView('obsidian-sync')}
+              className="w-full flex items-center justify-between p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] active:scale-[0.98] transition-transform"
+            >
+              <span className="text-sm font-medium">Sinkronisasi Obsidian</span>
               <span className="text-[10px] font-mono text-[var(--color-text-muted)]">ATUR →</span>
             </button>
             <button
@@ -140,6 +179,99 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
         )}
 
         {view === 'all-tasks' && <AllTasksView />}
+
+        {view === 'obsidian-sync' && (
+          <div className="space-y-4">
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-mono text-[var(--color-text-muted)] mb-1 uppercase tracking-wider">GitHub Personal Access Token (PAT)</label>
+                <input
+                  type="password"
+                  value={pat}
+                  onChange={(e) => handleSaveSyncConfig('tuntask_sync_pat', e.target.value)}
+                  placeholder="ghp_..."
+                  className="w-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm outline-none text-[var(--color-text)] focus:border-[var(--color-accent)]"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-mono text-[var(--color-text-muted)] mb-1 uppercase tracking-wider">Repository (username/repo)</label>
+                <input
+                  type="text"
+                  value={repo}
+                  onChange={(e) => handleSaveSyncConfig('tuntask_sync_repo', e.target.value)}
+                  placeholder="username/Obsidian-Vault"
+                  className="w-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm outline-none text-[var(--color-text)] focus:border-[var(--color-accent)]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono text-[var(--color-text-muted)] mb-1 uppercase tracking-wider">Jalur File Tasks (.md)</label>
+                <input
+                  type="text"
+                  value={tasksPath}
+                  onChange={(e) => handleSaveSyncConfig('tuntask_sync_tasks_path', e.target.value)}
+                  placeholder="TunTask/tasks.md"
+                  className="w-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm outline-none text-[var(--color-text)] focus:border-[var(--color-accent)]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono text-[var(--color-text-muted)] mb-1 uppercase tracking-wider">Jalur File Habits (.md)</label>
+                <input
+                  type="text"
+                  value={habitsPath}
+                  onChange={(e) => handleSaveSyncConfig('tuntask_sync_habits_path', e.target.value)}
+                  placeholder="TunTask/habits.md"
+                  className="w-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm outline-none text-[var(--color-text)] focus:border-[var(--color-accent)]"
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)]">
+                <div>
+                  <span className="block text-sm font-medium">Sinkronisasi Otomatis</span>
+                  <span className="block text-[10px] text-[var(--color-text-muted)]">Sinkronkan di background tiap ada perubahan</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleToggleAutoSync}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all ${
+                    autoSync
+                      ? 'bg-[var(--color-accent)] text-[var(--color-text-on-accent)]'
+                      : 'bg-zinc-800 text-zinc-400'
+                  }`}
+                >
+                  {autoSync ? 'AKTIF' : 'NONAKTIF'}
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-[var(--color-border)] space-y-3">
+              <button
+                type="button"
+                disabled={syncState.status === 'syncing'}
+                onClick={() => void triggerSync()}
+                className="w-full bg-[var(--color-accent)] text-[var(--color-text-on-accent)] font-semibold rounded-xl py-3 text-sm active:scale-[0.98] transition-transform disabled:opacity-50"
+              >
+                {syncState.status === 'syncing' ? 'Menyinkronkan...' : 'Sinkronkan Sekarang'}
+              </button>
+
+              <div className="text-center font-mono text-[10px] text-[var(--color-text-muted)]">
+                {syncState.status === 'success' && (
+                  <p className="text-green-500 font-semibold">✓ Sinkronisasi Berhasil</p>
+                )}
+                {syncState.status === 'error' && (
+                  <p className="text-red-500 font-semibold">⚠️ Error: {syncState.error}</p>
+                )}
+                {syncState.lastSync ? (
+                  <p className="mt-1">Terakhir Sync: {new Date(syncState.lastSync).toLocaleString('id-ID')}</p>
+                ) : (
+                  <p className="mt-1">Belum pernah disinkronkan</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {view === 'routines' && (
           <div className="space-y-6">
