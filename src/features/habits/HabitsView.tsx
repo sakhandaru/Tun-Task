@@ -31,10 +31,11 @@ export function HabitsView({ onSelectHabit }: HabitsViewProps) {
               >
                 <span>
                   <p className="font-medium text-[var(--color-text)]">{habit.title}</p>
-                  <p className="mt-0.5 font-mono text-[10px] text-[var(--color-text-muted)]">
-                    {habit.schedule.kind === 'daily'
-                      ? 'SETIAP HARI'
-                      : `${habit.schedule.days.length} HARI/MINGGU`}
+                  <p className="mt-0.5 font-mono text-[10px] text-[var(--color-text-muted)] uppercase">
+                    {habit.schedule.kind === 'daily' && 'SETIAP HARI'}
+                    {habit.schedule.kind === 'weekdays' && `${habit.schedule.days.length} HARI/MINGGU`}
+                    {habit.schedule.kind === 'monthly' && `SETIAP TANGGAL ${habit.schedule.dayOfMonth}`}
+                    {habit.schedule.kind === 'interval' && `SETIAP ${habit.schedule.intervalDays} HARI`}
                   </p>
                 </span>
                 <span className="text-[var(--color-text-muted)]">›</span>

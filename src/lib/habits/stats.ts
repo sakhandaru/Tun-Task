@@ -4,7 +4,6 @@ import {
   endOfMonth,
   endOfWeek,
   format,
-  getDay,
   startOfMonth,
   startOfWeek,
   subWeeks,
@@ -13,7 +12,7 @@ import { id } from 'date-fns/locale'
 import { toZonedTime } from 'date-fns-tz'
 import { TZ, dateKey, parseDateKey, todayKey } from '../dates'
 import { isHabitDueToday } from '../db/operations'
-import type { Habit, HabitLog, HabitLogStatus, Weekday } from '../db/types'
+import type { Habit, HabitLog, HabitLogStatus } from '../db/types'
 
 export type DayStatus = 'notDue' | 'empty' | 'done' | 'skipped' | 'missed'
 
@@ -40,8 +39,7 @@ export function isHabitScheduledOnDate(habit: Habit, dateStr: string): boolean {
   if (habit.archivedAt) return false
   const d = parseDateKey(dateStr)
   const zoned = toZonedTime(d, TZ)
-  const weekday = getDay(zoned) as Weekday
-  return isHabitDueToday(habit, weekday)
+  return isHabitDueToday(habit, zoned)
 }
 
 function resolveStatus(

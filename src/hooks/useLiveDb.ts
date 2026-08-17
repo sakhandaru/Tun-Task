@@ -4,7 +4,7 @@ import { useRefresh } from '../context/RefreshContext'
 import { db } from '../lib/db/schema'
 import { isHabitDueToday } from '../lib/db/operations'
 import { dateKey, nowInTz, todayKey } from '../lib/dates'
-import type { Habit, HabitLog, Routine, Todo, Weekday } from '../lib/db/types'
+import type { Habit, HabitLog, Routine, Todo } from '../lib/db/types'
 
 export function useRefreshToken() {
   return useRefresh()
@@ -50,9 +50,9 @@ export function useTodayHabits(token: number) {
 
   useEffect(() => {
     void (async () => {
-      const day = nowInTz().getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6
+      const todayDate = nowInTz()
       const all = await db.habits.filter((h) => !h.archivedAt).toArray()
-      const due = all.filter((h) => isHabitDueToday(h, day))
+      const due = all.filter((h) => isHabitDueToday(h, todayDate))
       const today = todayKey()
       const todayLogs = await db.habitLogs.where('date').equals(today).toArray()
       setHabits(due)
@@ -149,9 +149,8 @@ export function useTomorrowHabits(token: number) {
   useEffect(() => {
     void (async () => {
       const tomorrowDate = addDays(nowInTz(), 1)
-      const day = tomorrowDate.getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6
       const all = await db.habits.filter((h) => !h.archivedAt).toArray()
-      const due = all.filter((h) => isHabitDueToday(h, day))
+      const due = all.filter((h) => isHabitDueToday(h, tomorrowDate))
       setHabits(due)
     })()
   }, [token])
@@ -196,13 +195,9 @@ export function useScoreStats(token: number) {
 
       const getDailyScore = (dateK: string) => {
         const d = new Date(dateK + 'T12:00:00')
-        const dayOfWeek = d.getDay() as Weekday
 
         // Habits that should run on this day
-        const dayHabits = allHabits.filter(h => {
-          if (h.schedule.kind === 'daily') return true
-          return h.schedule.days.includes(dayOfWeek)
-        })
+        const dayHabits = allHabits.filter(h => isHabitDueToday(h, d))
 
         const dayLogs = allLogs.filter(l => l.date === dateK)
         const dayTodos = allTodos.filter(t => 

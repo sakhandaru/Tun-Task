@@ -63,10 +63,33 @@ export async function deleteTodo(id: string): Promise<void> {
   scheduleSync()
 }
 
-export function isHabitDueToday(habit: Habit, day: Weekday): boolean {
+export function isHabitDueToday(habit: Habit, date: Date): boolean {
   if (habit.archivedAt) return false
-  if (habit.schedule.kind === 'daily') return true
-  return habit.schedule.days.includes(day)
+
+  if (habit.schedule.kind === 'daily') {
+    return true
+  }
+
+  if (habit.schedule.kind === 'weekdays') {
+    const day = date.getDay() as Weekday
+    return habit.schedule.days.includes(day)
+  }
+
+  if (habit.schedule.kind === 'monthly') {
+    return date.getDate() === habit.schedule.dayOfMonth
+  }
+
+  if (habit.schedule.kind === 'interval') {
+    const createdDate = new Date(habit.createdAt)
+    const d1 = new Date(createdDate.getFullYear(), createdDate.getMonth(), createdDate.getDate())
+    const d2 = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    const diffTime = d2.getTime() - d1.getTime()
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24))
+    if (diffDays < 0) return false
+    return diffDays % habit.schedule.intervalDays === 0
+  }
+
+  return false
 }
 
 export async function getHabitLog(habitId: string, date: string): Promise<HabitLog | undefined> {

@@ -3,6 +3,8 @@ export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6 // 0 = Sunday
 export type HabitSchedule =
   | { kind: 'daily' }
   | { kind: 'weekdays'; days: Weekday[] }
+  | { kind: 'monthly'; dayOfMonth: number }
+  | { kind: 'interval'; intervalDays: number }
 
 export interface Todo {
   id: string

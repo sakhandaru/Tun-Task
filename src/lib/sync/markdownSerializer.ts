@@ -170,10 +170,14 @@ export function serializeHabits(habits: Habit[], logs: HabitLog[]): string {
 
       const log = habitLogs.find((l) => l.date === dateStr)
 
-      const repeatRule =
-        habit.schedule.kind === 'daily'
-          ? ' 🔁 every day'
-          : ` 🔁 every week`
+      let repeatRule = ' 🔁 every day'
+      if (habit.schedule.kind === 'weekdays') {
+        repeatRule = ' 🔁 every week'
+      } else if (habit.schedule.kind === 'monthly') {
+        repeatRule = ` 🔁 every month`
+      } else if (habit.schedule.kind === 'interval') {
+        repeatRule = ` 🔁 every ${habit.schedule.intervalDays} days`
+      }
 
       if (log?.status === 'done') {
         sections.push(
