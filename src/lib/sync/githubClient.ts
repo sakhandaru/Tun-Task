@@ -16,12 +16,14 @@ export async function getFileContent(
   repo: string,
   path: string
 ): Promise<GitHubFile> {
-  const url = `https://api.github.com/repos/${repo}/contents/${path}`
+  const cleanPat = pat.trim()
+  const cleanRepo = repo.trim()
+  const cleanPath = path.trim()
+  const url = `https://api.github.com/repos/${cleanRepo}/contents/${cleanPath}`
   const response = await fetch(url, {
     headers: {
-      Authorization: `token ${pat}`,
+      Authorization: `Bearer ${cleanPat}`,
       Accept: 'application/vnd.github.v3+json',
-      'Cache-Control': 'no-cache',
     },
   })
 
@@ -49,9 +51,12 @@ export async function updateFileContent(
   content: string,
   sha?: string
 ): Promise<string> {
-  const url = `https://api.github.com/repos/${repo}/contents/${path}`
+  const cleanPat = pat.trim()
+  const cleanRepo = repo.trim()
+  const cleanPath = path.trim()
+  const url = `https://api.github.com/repos/${cleanRepo}/contents/${cleanPath}`
   const body: Record<string, any> = {
-    message: `sync: update tasks in ${path}`,
+    message: `sync: update tasks in ${cleanPath}`,
     content: toBase64(content),
   }
 
@@ -62,7 +67,7 @@ export async function updateFileContent(
   const response = await fetch(url, {
     method: 'PUT',
     headers: {
-      Authorization: `token ${pat}`,
+      Authorization: `Bearer ${cleanPat}`,
       Accept: 'application/vnd.github.v3+json',
       'Content-Type': 'application/json',
     },
