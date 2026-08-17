@@ -105,10 +105,10 @@ export async function triggerSync(): Promise<void> {
 }
 
 async function getDirectoryContents(pat: string, repo: string, path: string): Promise<any[]> {
-  const url = `https://api.github.com/repos/${repo}/contents/${path}`
+  const url = `https://api.github.com/repos/${repo.trim()}/contents/${path.trim()}`
   const response = await fetch(url, {
     headers: {
-      Authorization: `token ${pat}`,
+      Authorization: `Bearer ${pat.trim()}`,
       Accept: 'application/vnd.github.v3+json',
       'Cache-Control': 'no-cache',
     },
