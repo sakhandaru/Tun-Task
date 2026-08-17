@@ -1,5 +1,5 @@
 import { db } from '../db/schema'
-import { getFileContent, updateFileContent } from './githubClient'
+import { getFileContent, updateFileContent, deleteFileContent } from './githubClient'
 import { serializeTodos, serializeHabits, parseTodos, parseHabits } from './markdownSerializer'
 import type { Todo, HabitLog } from '../db/types'
 
@@ -275,11 +275,28 @@ async function performSync(
   await updateFileContent(pat, repo, habitsPath, serializedHabits, remoteHabitsFile.sha)
 
 
-  // --- PART 3: AUTO-CREATE HABIT NOTES IN 06 - Habits ---
+  // --- PART 3: AUTO-CREATE & DELETE HABIT NOTES IN 06 - Habits ---
   try {
     const habitFiles = await getDirectoryContents(pat, repo, '06 - Habits')
     const existingFileNames = new Set(habitFiles.map((f: any) => f.name.toLowerCase()))
+    const activeHabitFileNames = new Set(updatedLocalHabits.map((h) => `${h.title.toLowerCase()}.md`))
 
+    // 1. Delete notes of habits that were deleted locally
+    for (const file of habitFiles) {
+      if (
+        (file.type === 'file' || file.type === 'symlink') &&
+        file.name.toLowerCase().endsWith('.md') &&
+        !activeHabitFileNames.has(file.name.toLowerCase())
+      ) {
+        try {
+          await deleteFileContent(pat, repo, `06 - Habits/${file.name}`, file.sha)
+        } catch (err) {
+          console.error(`Failed to delete habit file ${file.name}:`, err)
+        }
+      }
+    }
+
+    // 2. Create notes for new habits
     for (const habit of updatedLocalHabits) {
       const fileName = `${habit.title}.md`
       if (!existingFileNames.has(fileName.toLowerCase())) {

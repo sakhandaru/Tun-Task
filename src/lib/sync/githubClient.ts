@@ -82,3 +82,32 @@ export async function updateFileContent(
   const data = await response.json()
   return data.content.sha as string
 }
+
+export async function deleteFileContent(
+  pat: string,
+  repo: string,
+  path: string,
+  sha: string
+): Promise<void> {
+  const cleanPat = pat.trim()
+  const cleanRepo = repo.trim()
+  const cleanPath = path.trim()
+  const url = `https://api.github.com/repos/${cleanRepo}/contents/${cleanPath}`
+  const response = await fetch(url, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${cleanPat}`,
+      Accept: 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      message: `sync: delete file ${cleanPath}`,
+      sha,
+    }),
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`GitHub DELETE error (${response.status}): ${errorText}`)
+  }
+}
