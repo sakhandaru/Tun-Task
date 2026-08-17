@@ -98,11 +98,11 @@ export function CreateHabitSheet({ open, onClose }: CreateHabitSheetProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       {/* Backdrop tap to close */}
       <div className="absolute inset-0 -z-10" onClick={onClose} />
 
-      <div className="w-full max-w-md max-h-[90dvh] overflow-y-auto bg-[var(--color-bg)] rounded-t-3xl border-t border-[var(--color-border)] p-6 shadow-2xl transition-transform duration-300">
+      <div className="w-full max-w-md max-h-[85dvh] overflow-y-auto bg-[var(--color-bg)] rounded-3xl border border-[var(--color-border)] p-6 shadow-2xl transition-transform duration-300">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold tracking-tight text-[var(--color-text)]">
             🎯 Buat Habit Baru
