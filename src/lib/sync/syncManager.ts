@@ -219,15 +219,11 @@ async function performSync(
   const localLogs = await db.habitLogs.toArray()
 
   const remoteHabitsFile = await getFileContent(pat, repo, habitsPath)
-  const { logs: parsedRemoteLogs, newHabits: parsedNewHabits } = remoteHabitsFile.content
+  const { logs: parsedRemoteLogs } = remoteHabitsFile.content
     ? parseHabits(remoteHabitsFile.content, localHabits)
-    : { logs: [], newHabits: [] }
+    : { logs: [] }
 
-  // 1. Add any new habits created in Obsidian
-  if (parsedNewHabits.length > 0) {
-    await db.habits.bulkAdd(parsedNewHabits)
-    localHabits.push(...parsedNewHabits)
-  }
+  // 1. We do not import new habits from Obsidian (TunTask is the source of truth)
 
   // 2. Reconcile habit logs
   const localLogsMap = new Map(localLogs.map((l) => [`${l.habitId}_${l.date}`, l]))
