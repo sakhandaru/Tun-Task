@@ -1,42 +1,85 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { addDays } from 'date-fns'
 import { useRefreshToken, useWeeklyStats, useScoreStats } from '../../hooks/useLiveDb'
 import { db } from '../../lib/db/schema'
 import { completeTodo } from '../../lib/db/operations'
-import type { Todo } from '../../lib/db/types'
+import { dateKey, nowInTz } from '../../lib/dates'
+import type { HabitLog, Todo } from '../../lib/db/types'
+
+const REFLECTIONS = [
+  'Apa yang paling sering kamu tunda minggu ini?',
+  'Satu kebiasaan kecil untuk ditambahkan minggu depan?',
+  'Apa pencapaian terkecil yang pantas disyukuri?',
+  'Habit mana yang butuh lebih banyak perhatian?',
+  'Apakah kamu sudah istirahat cukup?',
+]
+
+// --- Longest streak from habit logs ---
+function calcStreak(logs: HabitLog[]): number {
+  if (!logs.length) return 0
+  const doneDates = [...new Set(logs.filter(l => l.status === 'done').map(l => l.date))].sort()
+  if (!doneDates.length) return 0
+  let streak = 1
+  let max = 1
+  for (let i = 1; i < doneDates.length; i++) {
+    const prev = new Date(doneDates[i - 1] + 'T12:00:00')
+    const curr = new Date(doneDates[i] + 'T12:00:00')
+    const diff = Math.round((curr.getTime() - prev.getTime()) / 86400000)
+    streak = diff === 1 ? streak + 1 : 1
+    if (streak > max) max = streak
+  }
+  return max
+}
 
 export function ReviewView() {
   const { token, refresh } = useRefreshToken()
   const stats = useWeeklyStats(token)
   const scores = useScoreStats(token)
-  const rate = stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0
+  const habitRate = stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0
 
-  const [showUncompleted, setShowUncompleted] = useState(false)
   const [backlogTodos, setBacklogTodos] = useState<Todo[]>([])
+  const [allLogs, setAllLogs] = useState<HabitLog[]>([])
+  const [weekDone, setWeekDone] = useState(0)
+  const [weekTotal, setWeekTotal] = useState(0)
+  const [showBacklog, setShowBacklog] = useState(false)
 
-  const fetchBacklog = async () => {
-    const all = await db.todos.filter(t => !t.completedAt && !t.cancelledAt).toArray()
-    const sorted = all.sort((a, b) => {
-      if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate)
-      if (a.dueDate) return -1
-      if (b.dueDate) return 1
-      return a.createdAt.localeCompare(b.createdAt)
-    })
-    setBacklogTodos(sorted)
-  }
+  const question = useMemo(() => {
+    const idx = new Date().getDay() % REFLECTIONS.length
+    return REFLECTIONS[idx]
+  }, [])
 
-  useEffect(() => { void fetchBacklog() }, [token, showUncompleted])
+  useEffect(() => {
+    void (async () => {
+      const all = await db.todos.filter(t => !t.completedAt && !t.cancelledAt).toArray()
+      all.sort((a, b) => {
+        if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate)
+        if (a.dueDate) return -1
+        if (b.dueDate) return 1
+        return a.createdAt.localeCompare(b.createdAt)
+      })
+      setBacklogTodos(all)
 
-  const handleCheckTodo = async (id: string) => {
-    await completeTodo(id)
-    refresh()
-    void fetchBacklog()
-  }
+      const logs = await db.habitLogs.toArray()
+      setAllLogs(logs)
 
-  const formatTime = (isoString?: string) => {
-    if (!isoString) return ''
-    const date = new Date(isoString)
-    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
-  }
+      // Week task stats
+      const now = nowInTz()
+      let done = 0, total = 0
+      for (let i = 0; i < 7; i++) {
+        const dk = dateKey(addDays(now, -i))
+        const dayTodos = await db.todos.filter(t =>
+          !t.cancelledAt && (t.dueDate === dk || (t.scheduledAt ? dk === dateKey(new Date(t.scheduledAt)) : false))
+        ).toArray()
+        total += dayTodos.length
+        done += dayTodos.filter(t => !!t.completedAt).length
+      }
+      setWeekDone(done)
+      setWeekTotal(total)
+    })()
+  }, [token])
+
+  const streak = useMemo(() => calcStreak(allLogs), [allLogs])
+  const taskRate = weekTotal > 0 ? Math.round((weekDone / weekTotal) * 100) : 0
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '—'
@@ -46,20 +89,18 @@ export function ReviewView() {
   }
 
   // --- BACKLOG VIEW ---
-  if (showUncompleted) {
+  if (showBacklog) {
     return (
       <div className="space-y-6 pt-2">
         <header>
           <button
             type="button"
-            onClick={() => setShowUncompleted(false)}
+            onClick={() => setShowBacklog(false)}
             className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
           >
             ← kembali
           </button>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-[var(--color-text)]">
-            Backlog
-          </h1>
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-[var(--color-text)]">Backlog</h1>
           <p className="mt-1 text-xs text-[var(--color-text-muted)]">
             {backlogTodos.length === 0 ? 'Semua bersih.' : `${backlogTodos.length} tugas belum selesai`}
           </p>
@@ -69,113 +110,203 @@ export function ReviewView() {
           <p className="py-12 text-center font-mono text-xs text-[var(--color-text-muted)]">TIDAK ADA BACKLOG</p>
         ) : (
           <ul>
-            {backlogTodos.map((todo) => {
-              const timeStr = formatTime(todo.scheduledAt)
-              return (
-                <li
-                  key={todo.id}
-                  className="list-row"
-                >
-                  <button
-                    type="button"
-                    onClick={() => void handleCheckTodo(todo.id)}
-                    className="check-circle shrink-0"
-                    aria-label="Selesaikan tugas"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-[var(--color-text)] leading-snug break-words">
-                      {todo.title}
-                    </p>
-                    <p className="mt-0.5 font-mono text-[10px] text-[var(--color-text-muted)]">
-                      {formatDate(todo.dueDate)}
-                      {timeStr && ` · ${timeStr}`}
-                      {todo.priority && ' · PRIORITAS'}
-                    </p>
-                  </div>
-                </li>
-              )
-            })}
+            {backlogTodos.map((todo) => (
+              <li key={todo.id} className="list-row">
+                <button
+                  type="button"
+                  onClick={async () => { await completeTodo(todo.id); refresh(); setBacklogTodos(p => p.filter(t => t.id !== todo.id)) }}
+                  className="check-circle shrink-0"
+                  aria-label="Selesaikan"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-[var(--color-text)] leading-snug">{todo.title}</p>
+                  <p className="mt-0.5 font-mono text-[10px] text-[var(--color-text-muted)]">
+                    {formatDate(todo.dueDate)}{todo.priority ? ' · PRIORITAS' : ''}
+                  </p>
+                </div>
+              </li>
+            ))}
           </ul>
         )}
       </div>
     )
   }
 
-  // --- MAIN REVIEW VIEW ---
+  // --- WIDGET GRID VIEW ---
   return (
-    <div className="space-y-10 pt-2">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-text)]">Review</h1>
-        <p className="mt-1 text-xs text-[var(--color-text-muted)]">Minggu ini</p>
-      </header>
+    <div className="pt-2 pb-6">
+      <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-text)] mb-6">Review</h1>
 
-      {/* Skor — flat data row, no cards */}
-      <section className="space-y-0">
-        <p className="section-label mb-4">SKOR</p>
+      {/* Bento Grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '10px',
+      }}>
 
-        <div className="list-row">
-          <span className="flex-1 text-sm text-[var(--color-text)]">Hari ini</span>
-          <span className="font-mono text-xl font-semibold text-[var(--color-text)]">{scores.today}</span>
+        {/* Widget 1: Skor Hari Ini — full width, tall */}
+        <div style={{
+          gridColumn: '1 / -1',
+          background: 'var(--color-accent)',
+          borderRadius: '20px',
+          padding: '24px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          minHeight: '120px',
+        }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.65)' }}>
+            SKOR HARI INI
+          </span>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '64px', fontWeight: 700, lineHeight: 1, color: '#fff', letterSpacing: '-2px' }}>
+              {scores.today}
+            </span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'rgba(255,255,255,0.65)', paddingBottom: '6px' }}>
+              / 100
+            </span>
+          </div>
         </div>
-        <div className="list-row">
-          <span className="flex-1 text-sm text-[var(--color-text)]">Minggu ini</span>
-          <span className="font-mono text-xl font-semibold text-[var(--color-text)]">{scores.week}</span>
-        </div>
-        <div className="list-row">
-          <span className="flex-1 text-sm text-[var(--color-text)]">Bulan ini</span>
-          <span className="font-mono text-xl font-semibold text-[var(--color-text)]">{scores.month}</span>
-        </div>
-      </section>
 
-      {/* Habit compliance — satu baris, no card */}
-      <section className="space-y-0">
-        <p className="section-label mb-4">HABIT</p>
-        <div className="list-row">
-          <span className="flex-1 text-sm text-[var(--color-text)]">Kepatuhan minggu ini</span>
-          <span className="font-mono text-xl font-semibold text-[var(--color-accent)]">{rate}%</span>
+        {/* Widget 2: Task Rate — square */}
+        <div style={{
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: '20px',
+          padding: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          minHeight: '130px',
+        }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>
+            TUGAS
+          </span>
+          <div>
+            <span style={{ fontSize: '42px', fontWeight: 700, lineHeight: 1, color: 'var(--color-text)', letterSpacing: '-1px' }}>
+              {taskRate}%
+            </span>
+            <p style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+              {weekDone}/{weekTotal} MINGGU INI
+            </p>
+          </div>
         </div>
-        <div className="list-row">
-          <span className="flex-1 text-xs text-[var(--color-text-muted)]">Selesai</span>
-          <span className="font-mono text-xs text-[var(--color-text-muted)]">{stats.done}</span>
-        </div>
-        <div className="list-row">
-          <span className="flex-1 text-xs text-[var(--color-text-muted)]">Dilewati</span>
-          <span className="font-mono text-xs text-[var(--color-text-muted)]">{stats.skipped}</span>
-        </div>
-      </section>
 
-      {/* Backlog link — inline row, no fat card */}
-      <section>
-        <p className="section-label mb-4">TUGAS</p>
+        {/* Widget 3: Habit Rate — square */}
+        <div style={{
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: '20px',
+          padding: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          minHeight: '130px',
+        }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>
+            HABIT
+          </span>
+          <div>
+            <span style={{ fontSize: '42px', fontWeight: 700, lineHeight: 1, color: 'var(--color-text)', letterSpacing: '-1px' }}>
+              {habitRate}%
+            </span>
+            <p style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+              {stats.done} SELESAI · {stats.skipped} SKIP
+            </p>
+          </div>
+        </div>
+
+        {/* Widget 4: Streak — square */}
+        <div style={{
+          background: 'var(--color-text)',
+          borderRadius: '20px',
+          padding: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          minHeight: '110px',
+        }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--color-bg)' , opacity: 0.55 }}>
+            STREAK
+          </span>
+          <div>
+            <span style={{ fontSize: '42px', fontWeight: 700, lineHeight: 1, color: 'var(--color-bg)', letterSpacing: '-1px' }}>
+              {streak}
+            </span>
+            <p style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: 'var(--color-bg)', opacity: 0.55, marginTop: '4px' }}>
+              HARI TERPANJANG
+            </p>
+          </div>
+        </div>
+
+        {/* Widget 5: Backlog button — square */}
         <button
           type="button"
-          onClick={() => setShowUncompleted(true)}
-          className="list-row w-full text-left active:opacity-60 transition-opacity"
+          onClick={() => setShowBacklog(true)}
+          style={{
+            background: 'var(--color-surface)',
+            border: '1px solid var(--color-border)',
+            borderRadius: '20px',
+            padding: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            minHeight: '110px',
+            textAlign: 'left',
+            cursor: 'pointer',
+            transition: 'opacity 0.15s',
+          }}
         >
-          <span className="flex-1 text-sm text-[var(--color-text)]">Belum selesai</span>
-          <span className="font-mono text-xs text-[var(--color-text-muted)]">
-            {backlogTodos.length > 0 ? `${backlogTodos.length} →` : '0 →'}
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>
+            BACKLOG
           </span>
-        </button>
-      </section>
-
-      {/* Refleksi — pertanyaan saja, bersih */}
-      <section className="space-y-0">
-        <p className="section-label mb-4">REFLEKSI</p>
-        {[
-          'Apa yang paling sering dilewati minggu ini?',
-          'Satu hal kecil untuk minggu depan?',
-          'Apa yang sudah berjalan baik?',
-        ].map((q) => (
-          <div key={q} className="list-row">
-            <p className="text-sm text-[var(--color-text-muted)]">{q}</p>
+          <div>
+            <span style={{ fontSize: '42px', fontWeight: 700, lineHeight: 1, color: backlogTodos.length > 0 ? 'var(--color-accent)' : 'var(--color-text)', letterSpacing: '-1px' }}>
+              {backlogTodos.length}
+            </span>
+            <p style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+              BUKA →
+            </p>
           </div>
-        ))}
-      </section>
+        </button>
 
-      <p className="pb-4 text-center font-mono text-[9px] tracking-widest text-[var(--color-text-muted)]">
-        KONSISTEN KECIL &gt; MOTIVASI BESAR
-      </p>
+        {/* Widget 6: Skor Minggu + Bulan — full width */}
+        <div style={{
+          gridColumn: '1 / -1',
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: '20px',
+          padding: '20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
+          <div>
+            <p style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>MINGGU INI</p>
+            <p style={{ fontSize: '28px', fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-1px', lineHeight: 1.1 }}>{scores.week}</p>
+          </div>
+          <div style={{ width: '1px', height: '40px', background: 'var(--color-border)' }} />
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>BULAN INI</p>
+            <p style={{ fontSize: '28px', fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-1px', lineHeight: 1.1 }}>{scores.month}</p>
+          </div>
+        </div>
+
+        {/* Widget 7: Refleksi — full width */}
+        <div style={{
+          gridColumn: '1 / -1',
+          borderTop: '1px solid var(--color-border)',
+          paddingTop: '20px',
+        }}>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: '10px' }}>
+            REFLEKSI
+          </p>
+          <p style={{ fontSize: '16px', fontWeight: 500, color: 'var(--color-text)', lineHeight: 1.5 }}>
+            {question}
+          </p>
+        </div>
+
+      </div>
     </div>
   )
 }
