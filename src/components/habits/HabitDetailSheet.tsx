@@ -4,6 +4,7 @@ import { useHabitLogs } from '../../hooks/useHabitHistory'
 import { todayKey } from '../../lib/dates'
 import { db } from '../../lib/db/schema'
 import { skipHabit, toggleHabitDone } from '../../lib/db/operations'
+import { scheduleSync } from '../../lib/sync/syncManager'
 import type { Habit } from '../../lib/db/types'
 import {
   buildContributionGrid,
@@ -129,6 +130,7 @@ export function HabitDetailSheet({ habit, onClose }: HabitDetailSheetProps) {
               void db.habits
                 .update(habit.id, { archivedAt: new Date().toISOString() })
                 .then(() => {
+                  scheduleSync()
                   refresh()
                   onClose()
                 })
@@ -143,6 +145,7 @@ export function HabitDetailSheet({ habit, onClose }: HabitDetailSheetProps) {
               if (confirm('Hapus habit ini dan semua riwayatnya secara permanen?')) {
                 void db.habits.delete(habit.id).then(() => {
                   void db.habitLogs.where('habitId').equals(habit.id).delete()
+                  scheduleSync()
                   refresh()
                   onClose()
                 })
