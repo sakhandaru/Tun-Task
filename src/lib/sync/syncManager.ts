@@ -348,6 +348,8 @@ cellStyleRules: []
 
 ## Tasks
 
+- [ ] 🌱 ${habit.title} 🔁 ${habit.schedule.kind === 'daily' ? 'every day' : 'every week'} 📅 ${todayStr}
+
 ## Notes
 
 - [[Habit]]
