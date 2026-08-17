@@ -37,8 +37,9 @@ export interface HabitLog {
 }
 
 export interface RoutineItem {
-  type: 'todo' | 'habit'
   title: string
+  priority?: boolean
+  scheduledTime?: string // HH:mm
 }
 
 export interface Routine {

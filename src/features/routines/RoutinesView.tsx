@@ -104,13 +104,21 @@ function RoutineCard({
   onDelete: () => void
   onUpdate: (updates: Partial<Routine>) => void
 }) {
-  const [itemInput, setItemInput] = useState('')
+  const [title, setTitle] = useState('')
+  const [priority, setPriority] = useState(false)
+  const [time, setTime] = useState('')
 
-  const addItem = (type: 'todo' | 'habit') => {
-    if (!itemInput.trim()) return
-    const newItem: RoutineItem = { type, title: itemInput.trim() }
+  const addItem = () => {
+    if (!title.trim()) return
+    const newItem: RoutineItem = {
+      title: title.trim(),
+      priority: priority || undefined,
+      scheduledTime: time || undefined,
+    }
     onUpdate({ items: [...routine.items, newItem] })
-    setItemInput('')
+    setTitle('')
+    setPriority(false)
+    setTime('')
   }
 
   const removeItem = (index: number) => {
@@ -125,7 +133,7 @@ function RoutineCard({
         <div>
           <h3 className="font-semibold">{routine.name}</h3>
           <p className="text-[10px] font-mono text-[var(--color-text-muted)] uppercase">
-            {routine.items.length} ITEM
+            {routine.items.length} TUGAS
           </p>
         </div>
         <div className="flex gap-4">
@@ -140,7 +148,7 @@ function RoutineCard({
             <button
               type="button"
               onClick={onDelete}
-              className="text-[10px] font-mono text-red-500/70"
+              className="text-[10px] font-mono text-[var(--color-text-muted)]"
             >
               HAPUS
             </button>
@@ -150,48 +158,64 @@ function RoutineCard({
 
       {isEditing && (
         <div className="border-t border-[var(--color-border)] p-4 space-y-4">
-          <div className="space-y-2">
-            {routine.items.map((item, i) => (
-              <div key={i} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono text-[var(--color-text-muted)] w-10">
-                    {item.type.toUpperCase()}
-                  </span>
-                  <span>{item.title}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeItem(i)}
-                  className="text-[var(--color-text-muted)] p-1"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
+          {routine.items.length > 0 && (
+            <ul className="space-y-2">
+              {routine.items.map((item, i) => (
+                <li key={i} className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm">
+                      {item.priority && <span className="text-[var(--color-accent)] mr-1">!</span>}
+                      {item.title}
+                    </p>
+                    {item.scheduledTime && (
+                      <p className="font-mono text-[9px] text-[var(--color-text-muted)]">{item.scheduledTime}</p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeItem(i)}
+                    className="text-[var(--color-text-muted)] font-mono text-[10px] p-1"
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
 
-          <div className="pt-2">
+          <div className="pt-2 border-t border-[var(--color-border)] space-y-2">
             <input
               type="text"
-              placeholder="Tambah isi (misal: Baca buku)"
+              placeholder="Nama tugas..."
               className="w-full bg-transparent border-b border-[var(--color-border)] pb-1 text-sm outline-none"
-              value={itemInput}
-              onChange={(e) => setItemInput(e.target.value)}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') addItem() }}
             />
-            <div className="mt-2 flex gap-3">
+            <div className="flex items-center gap-3">
+              <input
+                type="time"
+                className="bg-transparent font-mono text-[10px] text-[var(--color-text-muted)] outline-none"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+              />
               <button
                 type="button"
-                onClick={() => addItem('todo')}
-                className="chip text-[10px] bg-transparent"
+                onClick={() => setPriority(p => !p)}
+                className={`font-mono text-[9px] px-2 py-0.5 rounded-full border transition-colors ${
+                  priority
+                    ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
+                    : 'border-[var(--color-border)] text-[var(--color-text-muted)]'
+                }`}
               >
-                + TUGAS
+                ! PRIORITAS
               </button>
               <button
                 type="button"
-                onClick={() => addItem('habit')}
-                className="chip text-[10px] bg-transparent"
+                onClick={addItem}
+                className="ml-auto font-mono text-[10px] text-[var(--color-accent)]"
               >
-                + HABIT
+                + TAMBAH
               </button>
             </div>
           </div>
@@ -200,3 +224,4 @@ function RoutineCard({
     </div>
   )
 }
+

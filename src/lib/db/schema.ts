@@ -48,16 +48,16 @@ export async function seedDefaultsIfEmpty(): Promise<void> {
         id: crypto.randomUUID(),
         name: 'Pagi',
         items: [
-          { type: 'habit', title: 'Minum air' },
-          { type: 'todo', title: 'Rencanakan 3 prioritas hari ini' },
+          { title: 'Minum air' },
+          { title: 'Rencanakan 3 prioritas hari ini', priority: true },
         ],
       },
       {
         id: crypto.randomUUID(),
         name: 'Malam',
         items: [
-          { type: 'todo', title: 'Review hari ini' },
-          { type: 'habit', title: 'Olahraga ringan' },
+          { title: 'Review hari ini' },
+          { title: 'Olahraga ringan' },
         ],
       },
     ])

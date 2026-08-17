@@ -138,25 +138,23 @@ export async function loadRoutineItems(routineId: string): Promise<void> {
   const today = todayKey()
 
   for (const item of routine.items) {
-    if (item.type === 'todo') {
-      await db.todos.add({
-        id: crypto.randomUUID(),
-        title: item.title,
-        dueDate: today,
-        createdAt: new Date().toISOString(),
-      })
-    } else {
-      const match = await db.habits.filter((h) => h.title === item.title && !h.archivedAt).first()
-      if (!match) {
-        await db.habits.add({
-          id: crypto.randomUUID(),
-          title: item.title,
-          schedule: { kind: 'daily' },
-          createdAt: new Date().toISOString(),
-        })
-      }
+    let scheduledAt: string | undefined
+    if (item.scheduledTime) {
+      const [hh, mm] = item.scheduledTime.split(':').map(Number)
+      const d = nowInTz()
+      d.setHours(hh, mm, 0, 0)
+      scheduledAt = d.toISOString()
     }
+    await db.todos.add({
+      id: crypto.randomUUID(),
+      title: item.title,
+      dueDate: today,
+      priority: item.priority,
+      scheduledAt,
+      createdAt: new Date().toISOString(),
+    })
   }
+  scheduleSync()
 }
 
 export async function createRoutine(name: string): Promise<Routine> {
