@@ -21,6 +21,7 @@ export function initGoogleAuth() {
       if (response.access_token) {
         localStorage.setItem('gcal_token', response.access_token)
         localStorage.setItem('gcal_token_expiry', Date.now() + response.expires_in * 1000 + '')
+        window.dispatchEvent(new Event('gcal_auth_changed'))
       }
     },
   })
@@ -31,23 +32,45 @@ export async function ensureAuth() {
   const expiry = localStorage.getItem('gcal_token_expiry')
   
   if (!token || !expiry || Date.now() > parseInt(expiry)) {
+    if (!tokenClient) {
+      initGoogleAuth()
+    }
+    if (!tokenClient) {
+      return null
+    }
     return new Promise((resolve) => {
       tokenClient.callback = (response: any) => {
         if (response.access_token) {
           localStorage.setItem('gcal_token', response.access_token)
           localStorage.setItem('gcal_token_expiry', Date.now() + response.expires_in * 1000 + '')
+          window.dispatchEvent(new Event('gcal_auth_changed'))
           resolve(response.access_token)
+        } else {
+          resolve(null)
         }
       }
-      tokenClient.requestAccessToken({ prompt: 'none' })
+      try {
+        tokenClient.requestAccessToken({ prompt: 'none' })
+      } catch (e) {
+        console.error('ensureAuth token request failed:', e)
+        resolve(null)
+      }
     })
   }
   return token
 }
 
 export async function loginGoogle() {
+  if (typeof window === 'undefined' || !window.google) {
+    alert('Google SDK belum selesai dimuat. Harap periksa koneksi internet Anda, tunggu beberapa detik, lalu coba lagi.')
+    return
+  }
   if (!tokenClient) initGoogleAuth()
-  tokenClient.requestAccessToken({ prompt: 'consent' })
+  if (tokenClient) {
+    tokenClient.requestAccessToken({ prompt: 'consent' })
+  } else {
+    alert('Gagal menginisialisasi Google Auth Client. Periksa apakah Client ID Google Anda valid.')
+  }
 }
 
 export async function syncTodoToCalendar(todo: Todo) {

@@ -39,13 +39,20 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
     })
   }, [open])
 
-  useState(() => {
-    const token = localStorage.getItem('gcal_token')
-    const expiry = localStorage.getItem('gcal_token_expiry')
-    if (token && expiry && Date.now() < parseInt(expiry)) {
-      setIsConnected(true)
+  useEffect(() => {
+    const checkConnection = () => {
+      const token = localStorage.getItem('gcal_token')
+      const expiry = localStorage.getItem('gcal_token_expiry')
+      if (token && expiry && Date.now() < parseInt(expiry)) {
+        setIsConnected(true)
+      } else {
+        setIsConnected(false)
+      }
     }
-  })
+    checkConnection()
+    window.addEventListener('gcal_auth_changed', checkConnection)
+    return () => window.removeEventListener('gcal_auth_changed', checkConnection)
+  }, [])
 
   const handleSaveSyncConfig = (key: string, value: string) => {
     localStorage.setItem(key, value)
