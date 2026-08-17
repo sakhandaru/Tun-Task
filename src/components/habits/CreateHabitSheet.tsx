@@ -22,7 +22,6 @@ const WEEKDAYS = [
 export function CreateHabitSheet({ open, onClose }: CreateHabitSheetProps) {
   const { refresh } = useRefresh()
   const [title, setTitle] = useState('')
-  const [reminderTime, setReminderTime] = useState('')
   const [scheduleKind, setScheduleKind] = useState<'daily' | 'weekdays' | 'monthly' | 'interval'>('daily')
   const [selectedDays, setSelectedDays] = useState<Weekday[]>([])
   const [dayOfMonth, setDayOfMonth] = useState<number>(1)
@@ -76,13 +75,11 @@ export function CreateHabitSheet({ open, onClose }: CreateHabitSheetProps) {
         id: crypto.randomUUID(),
         title: cleanTitle,
         schedule,
-        reminderTime: reminderTime || undefined,
         createdAt: new Date().toISOString(),
       })
 
       // Reset Form
       setTitle('')
-      setReminderTime('')
       setScheduleKind('daily')
       setSelectedDays([])
       setDayOfMonth(1)
@@ -136,20 +133,6 @@ export function CreateHabitSheet({ open, onClose }: CreateHabitSheetProps) {
               placeholder="Contoh: Minum Air, Olahraga"
               className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)]"
               autoFocus
-            />
-          </div>
-
-          {/* Jam Pengingat */}
-          <div className="space-y-1.5">
-            <label htmlFor="habit-time" className="text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase">
-              Jam Pengingat (Opsional)
-            </label>
-            <input
-              id="habit-time"
-              type="time"
-              value={reminderTime}
-              onChange={e => setReminderTime(e.target.value)}
-              className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
             />
           </div>
 
