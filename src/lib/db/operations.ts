@@ -36,17 +36,17 @@ export async function createHabitFromParsed(parsed: ParsedHabit): Promise<Habit>
 }
 
 export async function completeTodo(id: string): Promise<void> {
-  await db.todos.update(id, { completedAt: new Date().toISOString() })
+  await db.todos.update(id, { completedAt: new Date().toISOString(), syncedAt: undefined })
   scheduleSync()
 }
 
 export async function uncompleteTodo(id: string): Promise<void> {
-  await db.todos.update(id, { completedAt: undefined })
+  await db.todos.update(id, { completedAt: undefined, syncedAt: undefined })
   scheduleSync()
 }
 
 export async function cancelTodo(id: string): Promise<void> {
-  await db.todos.update(id, { cancelledAt: new Date().toISOString() })
+  await db.todos.update(id, { cancelledAt: new Date().toISOString(), syncedAt: undefined })
   scheduleSync()
 }
 
@@ -54,7 +54,7 @@ export async function snoozeTodo(id: string, days = 1): Promise<void> {
   const todo = await db.todos.get(id)
   if (!todo) return
   const base = todo.dueDate ? new Date(todo.dueDate + 'T12:00:00') : nowInTz()
-  await db.todos.update(id, { dueDate: dateKey(addDays(base, days)) })
+  await db.todos.update(id, { dueDate: dateKey(addDays(base, days)), syncedAt: undefined })
   scheduleSync()
 }
 
