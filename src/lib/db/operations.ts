@@ -14,7 +14,6 @@ export async function createTodoFromParsed(parsed: ParsedTodo): Promise<Todo> {
     scheduledAt: parsed.scheduledAt,
     createdAt: new Date().toISOString(),
     priority: parsed.priority,
-    project: parsed.project,
   }
   await db.todos.add(todo)
   void syncTodoToCalendar(todo)

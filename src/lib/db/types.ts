@@ -15,7 +15,6 @@ export interface Todo {
   cancelledAt?: string
   createdAt: string
   priority?: boolean
-  project?: string
   syncedAt?: string
 }
 

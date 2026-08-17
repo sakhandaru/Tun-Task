@@ -104,11 +104,6 @@ export function ReviewView() {
                           ⏰ {timeStr}
                         </span>
                       )}
-                      {todo.project && (
-                        <span className="flex items-center gap-1 text-[var(--color-accent)]">
-                          📁 {todo.project}
-                        </span>
-                      )}
                       {todo.priority && (
                         <span className="text-amber-500">
                           🔺 PRIORITAS
