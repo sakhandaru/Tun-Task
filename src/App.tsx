@@ -23,7 +23,7 @@ function AppContent() {
   const [createHabitOpen, setCreateHabitOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [selectedHabit, setSelectedHabit] = useState<Habit | null>(null)
-  const [activeIndex, setActiveIndex] = useState(0)
+
   const { refresh } = useRefresh()
 
   useEffect(() => {
@@ -66,43 +66,13 @@ function AppContent() {
             onOpenSettings={() => setSettingsOpen(true)}
           />,
           <TomorrowView key="tomorrow" onSelectHabit={onSelectHabit} />,
-          <HabitsView key="habits" onSelectHabit={onSelectHabit} />,
+          <HabitsView key="habits" onSelectHabit={onSelectHabit} onCreateHabit={() => setCreateHabitOpen(true)} />,
           <ReviewView key="review" />,
         ]}
         defaultIndex={0}
-        onIndexChange={setActiveIndex}
       />
 
-      {activeIndex === 2 && !selectedHabit && !quickAddOpen && (
-        <button
-          type="button"
-          onClick={() => setCreateHabitOpen(true)}
-          className="fixed bottom-24 left-1/2 z-50 flex h-10 w-10 -translate-x-1/2 items-center justify-center rounded-full shadow-md border border-[var(--color-border)] transition active:scale-95"
-          style={{
-            background: 'var(--color-bg)',
-            color: 'var(--color-accent)',
-            marginBottom: 'env(safe-area-inset-bottom)',
-          }}
-          aria-label="Buat Habit Baru"
-          title="Buat Habit Baru (Visual)"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <circle cx="12" cy="12" r="6" />
-            <circle cx="12" cy="12" r="2" />
-          </svg>
-        </button>
-      )}
+
 
       <Suspense fallback={null}>
         <FabPlus onClick={() => setQuickAddOpen(true)} hidden={quickAddOpen || !!selectedHabit} />
