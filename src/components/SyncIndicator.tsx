@@ -10,6 +10,11 @@ export function SyncIndicator() {
     })
   }, [])
 
+  useEffect(() => {
+    // Auto-sync on startup to pull changes from other devices
+    void triggerSync()
+  }, [])
+
   const pat = localStorage.getItem('tuntask_sync_pat') || ''
   const repo = localStorage.getItem('tuntask_sync_repo') || ''
   const isConfigured = pat && repo
@@ -32,8 +37,9 @@ export function SyncIndicator() {
       label = 'Sedang menyinkronkan ke GitHub...'
       break
     case 'success':
-      colorClass = 'bg-green-500'
-      label = `Sinkronisasi berhasil: ${new Date(syncState.lastSync || '').toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
+      colorClass = 'bg-green-500 cursor-pointer active:scale-90 hover:scale-110'
+      label = `Sinkronisasi berhasil: ${new Date(syncState.lastSync || '').toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}. Klik untuk sinkronisasi paksa.`
+      isInteractive = true
       break
     case 'error':
       colorClass = 'bg-red-500 cursor-pointer active:scale-90 hover:scale-110'
@@ -42,13 +48,14 @@ export function SyncIndicator() {
       break
     case 'idle':
     default:
-      colorClass = 'bg-zinc-500'
-      label = 'Siap sinkronisasi'
+      colorClass = 'bg-zinc-500 cursor-pointer active:scale-90 hover:scale-110'
+      label = 'Siap sinkronisasi. Klik untuk sinkronisasi paksa.'
+      isInteractive = true
       break
   }
 
   const handleClick = () => {
-    if (isInteractive) {
+    if (isInteractive && syncState.status !== 'syncing') {
       void triggerSync()
     }
   }
