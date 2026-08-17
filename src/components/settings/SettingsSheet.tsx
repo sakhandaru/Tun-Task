@@ -4,7 +4,7 @@ import { createRoutine, deleteRoutine, updateRoutine } from '../../lib/db/operat
 import type { Routine, RoutineItem } from '../../lib/db/types'
 import { loginGoogle } from '../../lib/gcal'
 
-import { AllTasksView } from '../../features/all-tasks/AllTasksView'
+
 import { getSyncState, subscribeSyncState, triggerSync } from '../../lib/sync/syncManager'
 import type { SyncState } from '../../lib/sync/syncManager'
 
@@ -13,7 +13,7 @@ interface SettingsSheetProps {
   onClose: () => void
 }
 
-type View = 'menu' | 'routines' | 'all-tasks' | 'obsidian-sync'
+type View = 'menu' | 'routines' | 'obsidian-sync'
 
 export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   const { token, refresh } = useRefreshToken()
@@ -122,7 +122,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
             <h2 className="text-xl font-semibold text-[var(--color-text)]">
               {view === 'menu' && 'Menu Utama'}
               {view === 'routines' && 'Paket Rutinitas'}
-              {view === 'all-tasks' && 'Semua Tugas'}
+
               {view === 'obsidian-sync' && 'Sinkronisasi Obsidian'}
             </h2>
           </div>
@@ -137,13 +137,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
 
         {view === 'menu' && (
           <div className="space-y-3">
-            <button
-              onClick={() => setView('all-tasks')}
-              className="w-full flex items-center justify-between p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] active:scale-[0.98] transition-transform"
-            >
-              <span className="text-sm font-medium">Daftar Semua Tugas</span>
-              <span className="text-[10px] font-mono text-[var(--color-text-muted)]">LIHAT →</span>
-            </button>
+
             <button
               onClick={() => setView('routines')}
               className="w-full flex items-center justify-between p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] active:scale-[0.98] transition-transform"
@@ -185,7 +179,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
           </div>
         )}
 
-        {view === 'all-tasks' && <AllTasksView />}
+
 
         {view === 'obsidian-sync' && (
           <div className="space-y-4">
