@@ -22,14 +22,15 @@ export function HabitsView({ onSelectHabit, onCreateHabit }: HabitsViewProps) {
         <button
           type="button"
           onClick={onCreateHabit}
-          className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-95"
+          style={{ background: 'var(--color-accent)', color: '#fff' }}
           aria-label="Buat Habit Baru"
-          title="Buat Habit Baru"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
+          BARU
         </button>
       </header>
 
