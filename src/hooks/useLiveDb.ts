@@ -164,27 +164,18 @@ export function useScoreStats() {
       ))
       .toArray()
       
-    const allHabits = await db.habits.filter((h) => !h.archivedAt).toArray()
     const todayK = todayKey()
 
     const getDailyScore = (dateK: string) => {
-      const d = new Date(dateK + 'T12:00:00')
-
-      // Habits that should run on this day
-      const dayHabits = allHabits.filter((h) => isHabitDueToday(h, d))
-
       const dayLogs = logs.filter((l) => l.date === dateK)
       const dayTodos = todos.filter((t) => 
         !t.cancelledAt && (t.dueDate === dateK || (t.scheduledAt && dateKey(new Date(t.scheduledAt)) === dateK))
       )
 
-      const totalItems = dayHabits.length + dayTodos.length
-      if (totalItems === 0) return 100
-
       const completedHabits = dayLogs.filter((l) => l.status === 'done').length
       const completedTodos = dayTodos.filter((t) => !!t.completedAt).length
       
-      return Math.round(((completedHabits + completedTodos) / totalItems) * 100)
+      return (completedHabits + completedTodos) * 10
     }
 
     // Calculate today
