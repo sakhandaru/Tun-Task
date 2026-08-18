@@ -1,4 +1,4 @@
-import { useAllHabits, useRefreshToken } from '../../hooks/useLiveDb'
+import { useAllHabits } from '../../hooks/useLiveDb'
 import type { Habit } from '../../lib/db/types'
 
 interface HabitsViewProps {
@@ -7,8 +7,7 @@ interface HabitsViewProps {
 }
 
 export function HabitsView({ onSelectHabit, onCreateHabit }: HabitsViewProps) {
-  const { token } = useRefreshToken()
-  const habits = useAllHabits(token)
+  const habits = useAllHabits()
 
   return (
     <div className="space-y-6 pt-2">

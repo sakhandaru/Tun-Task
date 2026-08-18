@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState, lazy, Suspense } from 'react'
 import { SwipePages } from './components/SwipePages'
-import { RefreshProvider, useRefresh } from './context/RefreshContext'
 import { HabitsView } from './features/habits/HabitsView'
 import { ReviewView } from './features/review/ReviewView'
 import { TodayView } from './features/today/TodayView'
@@ -22,8 +21,6 @@ function AppContent() {
   const [createHabitOpen, setCreateHabitOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [selectedHabit, setSelectedHabit] = useState<Habit | null>(null)
-
-  const { refresh } = useRefresh()
 
   useEffect(() => {
     initGoogleAuth()
@@ -70,14 +67,11 @@ function AppContent() {
         defaultIndex={0}
       />
 
-
-
       <Suspense fallback={null}>
         <FabPlus onClick={() => setQuickAddOpen(true)} hidden={quickAddOpen || !!selectedHabit} />
         <SpotlightModal
           open={quickAddOpen}
           onClose={() => setQuickAddOpen(false)}
-          onSaved={refresh}
         />
         <CreateHabitSheet open={createHabitOpen} onClose={() => setCreateHabitOpen(false)} />
         <HabitDetailSheet habit={selectedHabit} onClose={() => setSelectedHabit(null)} />
@@ -88,9 +82,5 @@ function AppContent() {
 }
 
 export default function App() {
-  return (
-    <RefreshProvider>
-      <AppContent />
-    </RefreshProvider>
-  )
+  return <AppContent />
 }

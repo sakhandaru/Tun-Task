@@ -5,10 +5,9 @@ import { parseInput } from '../lib/nlp/parseInput'
 interface SpotlightModalProps {
   open: boolean
   onClose: () => void
-  onSaved: () => void
 }
 
-export function SpotlightModal({ open, onClose, onSaved }: SpotlightModalProps) {
+export function SpotlightModal({ open, onClose }: SpotlightModalProps) {
   const [value, setValue] = useState('')
   const [preview, setPreview] = useState('')
   const [confidence, setConfidence] = useState<'high' | 'low'>('high')
@@ -44,9 +43,8 @@ export function SpotlightModal({ open, onClose, onSaved }: SpotlightModalProps) 
 
     setValue('')
     setPreview('')
-    onSaved()
     onClose()
-  }, [value, onSaved, onClose])
+  }, [value, onClose])
 
   useEffect(() => {
     if (!open) return

@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { useRefresh } from '../../context/RefreshContext'
 import { useHabitLogs } from '../../hooks/useHabitHistory'
 import { todayKey } from '../../lib/dates'
 import { db } from '../../lib/db/schema'
@@ -21,8 +20,7 @@ interface HabitDetailSheetProps {
 }
 
 export function HabitDetailSheet({ habit, onClose }: HabitDetailSheetProps) {
-  const { token, refresh } = useRefresh()
-  const logs = useHabitLogs(habit?.id ?? null, token)
+  const logs = useHabitLogs(habit?.id ?? null)
   const today = todayKey()
 
   const now = new Date()
@@ -90,7 +88,7 @@ export function HabitDetailSheet({ habit, onClose }: HabitDetailSheetProps) {
         <div className="mb-8 flex items-center gap-3">
           <button
             type="button"
-            onClick={() => void toggleHabitDone(habit.id, today).then(refresh)}
+            onClick={() => void toggleHabitDone(habit.id, today)}
             className={`check-circle ${doneToday ? 'check-circle--done' : ''}`}
             aria-label={doneToday ? 'Batalkan hari ini' : 'Selesai hari ini'}
           />
@@ -131,7 +129,6 @@ export function HabitDetailSheet({ habit, onClose }: HabitDetailSheetProps) {
                 .update(habit.id, { archivedAt: new Date().toISOString() })
                 .then(() => {
                   scheduleSync()
-                  refresh()
                   onClose()
                 })
             }
@@ -146,7 +143,6 @@ export function HabitDetailSheet({ habit, onClose }: HabitDetailSheetProps) {
                 void db.habits.delete(habit.id).then(() => {
                   void db.habitLogs.where('habitId').equals(habit.id).delete()
                   scheduleSync()
-                  refresh()
                   onClose()
                 })
               }
@@ -162,7 +158,7 @@ export function HabitDetailSheet({ habit, onClose }: HabitDetailSheetProps) {
         title="Lewati Habit?"
         description="Melewati satu hari akan merusak rantai konsistensi Anda."
         phrase="SAYA MENUNDA"
-        onConfirm={() => void skipHabit(habit.id, today).then(refresh)}
+        onConfirm={() => void skipHabit(habit.id, today)}
         onClose={() => setShowChallenge(false)}
       />
     </div>

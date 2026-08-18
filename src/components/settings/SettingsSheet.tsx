@@ -1,11 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useRefreshToken, useRoutines } from '../../hooks/useLiveDb'
+import { useRoutines } from '../../hooks/useLiveDb'
 import { createRoutine, deleteRoutine, updateRoutine } from '../../lib/db/operations'
 import type { Routine, RoutineItem } from '../../lib/db/types'
 import { loginGoogle } from '../../lib/gcal'
-
-
-
 
 interface SettingsSheetProps {
   open: boolean
@@ -15,15 +12,12 @@ interface SettingsSheetProps {
 type View = 'menu' | 'routines'
 
 export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
-  const { token, refresh } = useRefreshToken()
-  const routines = useRoutines(token)
+  const routines = useRoutines()
   const [view, setView] = useState<View>('menu')
   const [isAdding, setIsAdding] = useState(false)
   const [newName, setNewName] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isConnected, setIsConnected] = useState(false)
-
-
 
   useEffect(() => {
     const checkConnection = () => {
@@ -39,8 +33,6 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
     window.addEventListener('gcal_auth_changed', checkConnection)
     return () => window.removeEventListener('gcal_auth_changed', checkConnection)
   }, [])
-
-
 
   if (!open) return null
 
@@ -60,13 +52,11 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
     await createRoutine(newName.trim())
     setNewName('')
     setIsAdding(false)
-    refresh()
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm('Hapus paket ini?')) return
     await deleteRoutine(id)
-    refresh()
   }
 
   return (
@@ -96,8 +86,6 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
             <h2 className="text-xl font-semibold text-[var(--color-text)]">
               {view === 'menu' && 'Menu Utama'}
               {view === 'routines' && 'Paket Rutinitas'}
-
-
             </h2>
           </div>
           <button
@@ -111,7 +99,6 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
 
         {view === 'menu' && (
           <div className="space-y-3">
-
             <button
               onClick={() => setView('routines')}
               className="w-full flex items-center justify-between p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] active:scale-[0.98] transition-transform"
@@ -147,71 +134,67 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
           </div>
         )}
 
-
-
-
-
         {view === 'routines' && (
           <div className="space-y-6">
-          <section>
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-xs font-mono tracking-widest text-[var(--color-text-muted)] uppercase">
-                Paket Rutinitas
-              </h3>
-              {!isAdding && (
-                <button
-                  type="button"
-                  onClick={() => setIsAdding(true)}
-                  className="text-[10px] font-mono text-[var(--color-accent)]"
-                >
-                  + BARU
-                </button>
-              )}
-            </div>
-
-            {isAdding && (
-              <div className="mb-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] p-4">
-                <input
-                  autoFocus
-                  type="text"
-                  placeholder="Nama paket..."
-                  className="w-full bg-transparent text-sm font-medium outline-none"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') void handleAdd()
-                    if (e.key === 'Escape') setIsAdding(false)
-                  }}
-                />
-                <div className="mt-4 flex justify-end gap-4 text-[10px] font-mono">
-                  <button type="button" onClick={() => setIsAdding(false)}>
-                    BATAL
+            <section>
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-xs font-mono tracking-widest text-[var(--color-text-muted)] uppercase">
+                  Paket Rutinitas
+                </h3>
+                {!isAdding && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAdding(true)}
+                    className="text-[10px] font-mono text-[var(--color-accent)]"
+                  >
+                    + BARU
                   </button>
-                  <button type="button" onClick={handleAdd} className="text-[var(--color-accent)]">
-                    SIMPAN
-                  </button>
-                </div>
+                )}
               </div>
-            )}
 
-            <div className="space-y-3">
-              {routines.map((routine) => (
-                <RoutineRow
-                  key={routine.id}
-                  routine={routine}
-                  isEditing={editingId === routine.id}
-                  onToggleEdit={() => setEditingId(editingId === routine.id ? null : routine.id)}
-                  onDelete={() => void handleDelete(routine.id)}
-                  onUpdate={(updates) => void updateRoutine(routine.id, updates).then(refresh)}
-                />
-              ))}
-              {routines.length === 0 && !isAdding && (
-                <p className="py-4 text-center text-xs text-[var(--color-text-muted)]">
-                  Belum ada paket.
-                </p>
+              {isAdding && (
+                <div className="mb-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] p-4">
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder="Nama paket..."
+                    className="w-full bg-transparent text-sm font-medium outline-none"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') void handleAdd()
+                      if (e.key === 'Escape') setIsAdding(false)
+                    }}
+                  />
+                  <div className="mt-4 flex justify-end gap-4 text-[10px] font-mono">
+                    <button type="button" onClick={() => setIsAdding(false)}>
+                      BATAL
+                    </button>
+                    <button type="button" onClick={handleAdd} className="text-[var(--color-accent)]">
+                      SIMPAN
+                    </button>
+                  </div>
+                </div>
               )}
-            </div>
-          </section>
+
+              <div className="space-y-3">
+                {routines.map((routine) => (
+                  <RoutineRow
+                    key={routine.id}
+                    routine={routine}
+                    isEditing={editingId === routine.id}
+                    onToggleEdit={() => setEditingId(editingId === routine.id ? null : routine.id)}
+                    onDelete={() => void handleDelete(routine.id)}
+                    onUpdate={(updates) => void updateRoutine(routine.id, updates)}
+                  />
+                ))}
+                {routines.length === 0 && !isAdding && (
+                  <p className="py-4 text-center text-xs text-[var(--color-text-muted)]">
+                    Belum ada paket.
+                  </p>
+                )}
+              </div>
+            </section>
           </div>
         )}
       </div>
@@ -354,4 +337,3 @@ function RoutineRow({
     </div>
   )
 }
-

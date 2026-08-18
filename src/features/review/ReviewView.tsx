@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { addDays } from 'date-fns'
-import { useRefreshToken, useWeeklyStats, useScoreStats } from '../../hooks/useLiveDb'
+import { useWeeklyStats, useScoreStats } from '../../hooks/useLiveDb'
 import { db } from '../../lib/db/schema'
 import { completeTodo } from '../../lib/db/operations'
 import { dateKey, nowInTz } from '../../lib/dates'
@@ -32,9 +32,8 @@ function calcStreak(logs: HabitLog[]): number {
 }
 
 export function ReviewView() {
-  const { token, refresh } = useRefreshToken()
-  const stats = useWeeklyStats(token)
-  const scores = useScoreStats(token)
+  const stats = useWeeklyStats()
+  const scores = useScoreStats()
   const habitRate = stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0
 
   const [backlogTodos, setBacklogTodos] = useState<Todo[]>([])
@@ -62,21 +61,35 @@ export function ReviewView() {
       const logs = await db.habitLogs.toArray()
       setAllLogs(logs)
 
-      // Week task stats
+      // Week task stats (Optimized to single range database scan)
       const now = nowInTz()
-      let done = 0, total = 0
+      const startDate = dateKey(addDays(now, -6))
+      const endDate = dateKey(now)
+      
+      const weekTodos = await db.todos
+        .filter((t) => 
+          !t.cancelledAt && (
+            (t.dueDate ? (t.dueDate >= startDate && t.dueDate <= endDate) : false) ||
+            (t.scheduledAt ? (dateKey(new Date(t.scheduledAt)) >= startDate && dateKey(new Date(t.scheduledAt)) <= endDate) : false)
+          )
+        )
+        .toArray()
+      
+      let done = 0
+      let total = 0
       for (let i = 0; i < 7; i++) {
         const dk = dateKey(addDays(now, -i))
-        const dayTodos = await db.todos.filter(t =>
-          !t.cancelledAt && (t.dueDate === dk || (t.scheduledAt ? dk === dateKey(new Date(t.scheduledAt)) : false))
-        ).toArray()
+        const dayTodos = weekTodos.filter(t => 
+          t.dueDate === dk || (t.scheduledAt ? dateKey(new Date(t.scheduledAt)) === dk : false)
+        )
         total += dayTodos.length
         done += dayTodos.filter(t => !!t.completedAt).length
       }
+      
       setWeekDone(done)
       setWeekTotal(total)
     })()
-  }, [token])
+  }, [])
 
   const streak = useMemo(() => calcStreak(allLogs), [allLogs])
   const taskRate = weekTotal > 0 ? Math.round((weekDone / weekTotal) * 100) : 0
@@ -114,7 +127,7 @@ export function ReviewView() {
               <li key={todo.id} className="list-row">
                 <button
                   type="button"
-                  onClick={async () => { await completeTodo(todo.id); refresh(); setBacklogTodos(p => p.filter(t => t.id !== todo.id)) }}
+                  onClick={async () => { await completeTodo(todo.id); setBacklogTodos(p => p.filter(t => t.id !== todo.id)) }}
                   className="check-circle shrink-0"
                   aria-label="Selesaikan"
                 />

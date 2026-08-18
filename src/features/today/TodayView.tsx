@@ -5,7 +5,6 @@ import { HabitMiniHeatmap } from '../../components/habits/HabitMiniHeatmap'
 import { ChallengeModal } from '../../components/ChallengeModal'
 import {
   useAllHabitLogs,
-  useRefreshToken,
   useRoutines,
   useTodayHabits,
   useTodayTodos,
@@ -33,11 +32,10 @@ function logStatus(logs: HabitLog[], habitId: string): HabitLog | undefined {
 }
 
 export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
-  const { token, refresh } = useRefreshToken()
-  const todos = useTodayTodos(token)
-  const { habits, logs } = useTodayHabits(token)
-  const allLogs = useAllHabitLogs(token)
-  const routines = useRoutines(token)
+  const todos = useTodayTodos()
+  const { habits, logs } = useTodayHabits()
+  const allLogs = useAllHabitLogs()
+  const routines = useRoutines()
   const today = todayKey()
   const dateLabel = format(nowInTz(), 'EEEE, d MMMM', { locale: id })
 
@@ -58,7 +56,7 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
       open: true,
       title: 'Tunda Tugas?',
       description: 'Menunda tugas akan menumpuk beban Anda di hari esok.',
-      onConfirm: () => void snoozeTodo(todoId).then(refresh),
+      onConfirm: () => void snoozeTodo(todoId),
     })
   }
 
@@ -67,7 +65,7 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
       open: true,
       title: 'Lewati Habit?',
       description: 'Konsistensi adalah kunci. Melewati hari ini berarti merusak momentum Anda.',
-      onConfirm: () => void skipHabit(habitId, today).then(refresh),
+      onConfirm: () => void skipHabit(habitId, today),
     })
   }
 
@@ -76,7 +74,7 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
       open: true,
       title: 'Batalkan Tugas?',
       description: 'Tugas ini akan dianggap tidak ada dan tidak mempengaruhi persentase progres.',
-      onConfirm: () => void cancelTodo(todoId).then(refresh),
+      onConfirm: () => void cancelTodo(todoId),
     })
   }
 
@@ -154,7 +152,7 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
             <button
               key={r.id}
               type="button"
-              onClick={() => void loadRoutineItems(r.id).then(refresh)}
+              onClick={() => void loadRoutineItems(r.id)}
               className="chip"
             >
               {r.name}
@@ -177,9 +175,7 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
                 <button
                   type="button"
                   onClick={() =>
-                    void (todo.completedAt ? uncompleteTodo(todo.id) : completeTodo(todo.id)).then(
-                      refresh,
-                    )
+                    void (todo.completedAt ? uncompleteTodo(todo.id) : completeTodo(todo.id))
                   }
                   className={`check-circle shrink-0 ${todo.completedAt ? 'check-circle--done' : ''}`}
                   aria-label={todo.completedAt ? 'Batalkan' : 'Selesai'}
@@ -238,7 +234,7 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
                 <li key={habit.id} className="list-row">
                   <button
                     type="button"
-                    onClick={() => void toggleHabitDone(habit.id, today).then(refresh)}
+                    onClick={() => void toggleHabitDone(habit.id, today)}
                     className={`check-circle shrink-0 ${done ? 'check-circle--done' : ''}`}
                     aria-label={done ? 'Batalkan' : 'Selesai'}
                   />

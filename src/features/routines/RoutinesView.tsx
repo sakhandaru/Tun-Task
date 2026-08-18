@@ -1,11 +1,10 @@
 import { useState } from 'react'
-import { useRefreshToken, useRoutines } from '../../hooks/useLiveDb'
+import { useRoutines } from '../../hooks/useLiveDb'
 import { createRoutine, deleteRoutine, updateRoutine } from '../../lib/db/operations'
 import type { Routine, RoutineItem } from '../../lib/db/types'
 
 export function RoutinesView() {
-  const { token, refresh } = useRefreshToken()
-  const routines = useRoutines(token)
+  const routines = useRoutines()
   const [isAdding, setIsAdding] = useState(false)
   const [newName, setNewName] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -15,13 +14,11 @@ export function RoutinesView() {
     await createRoutine(newName.trim())
     setNewName('')
     setIsAdding(false)
-    refresh()
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm('Hapus paket ini?')) return
     await deleteRoutine(id)
-    refresh()
   }
 
   return (
@@ -82,7 +79,7 @@ export function RoutinesView() {
               isEditing={editingId === routine.id}
               onToggleEdit={() => setEditingId(editingId === routine.id ? null : routine.id)}
               onDelete={() => void handleDelete(routine.id)}
-              onUpdate={(updates) => void updateRoutine(routine.id, updates).then(refresh)}
+              onUpdate={(updates) => void updateRoutine(routine.id, updates)}
             />
           ))}
         </div>
@@ -224,4 +221,3 @@ function RoutineCard({
     </div>
   )
 }
-

@@ -1,7 +1,6 @@
 import { format, addDays } from 'date-fns'
 import { id } from 'date-fns/locale'
 import {
-  useRefreshToken,
   useTomorrowHabits,
   useTomorrowTodos,
 } from '../../hooks/useLiveDb'
@@ -14,9 +13,8 @@ interface TomorrowViewProps {
 }
 
 export function TomorrowView({ onSelectHabit }: TomorrowViewProps) {
-  const { token, refresh } = useRefreshToken()
-  const todos = useTomorrowTodos(token)
-  const habits = useTomorrowHabits(token)
+  const todos = useTomorrowTodos()
+  const habits = useTomorrowHabits()
   
   const tomorrowDate = addDays(nowInTz(), 1)
   const dateLabel = format(tomorrowDate, 'EEEE, d MMMM', { locale: id })
@@ -49,7 +47,7 @@ export function TomorrowView({ onSelectHabit }: TomorrowViewProps) {
                     void (todo.completedAt
                       ? uncompleteTodo(todo.id)
                       : completeTodo(todo.id)
-                    ).then(refresh)
+                    )
                   }
                   className={`check-circle shrink-0 ${
                     todo.completedAt ? 'check-circle--done' : ''
@@ -73,7 +71,7 @@ export function TomorrowView({ onSelectHabit }: TomorrowViewProps) {
                 {!todo.completedAt && (
                   <button
                     type="button"
-                    onClick={() => void snoozeTodo(todo.id, 1).then(refresh)}
+                    onClick={() => void snoozeTodo(todo.id, 1)}
                     className="shrink-0 font-mono text-[10px] text-[var(--color-text-muted)]"
                   >
                     LUSA

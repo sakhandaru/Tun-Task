@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { db } from '../../lib/db/schema'
 const scheduleSync = () => {}
-import { useRefresh } from '../../context/RefreshContext'
 import type { Weekday, HabitSchedule } from '../../lib/db/types'
 
 interface CreateHabitSheetProps {
@@ -20,7 +19,6 @@ const WEEKDAYS = [
 ]
 
 export function CreateHabitSheet({ open, onClose }: CreateHabitSheetProps) {
-  const { refresh } = useRefresh()
   const [title, setTitle] = useState('')
   const [scheduleKind, setScheduleKind] = useState<'daily' | 'weekdays' | 'monthly' | 'interval'>('daily')
   const [selectedDays, setSelectedDays] = useState<Weekday[]>([])
@@ -86,7 +84,6 @@ export function CreateHabitSheet({ open, onClose }: CreateHabitSheetProps) {
       setIntervalDays(4)
 
       scheduleSync()
-      refresh()
       onClose()
     } catch (err) {
       console.error(err)
