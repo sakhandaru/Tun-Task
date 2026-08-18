@@ -102,6 +102,10 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
         await db.habits.clear()
         await db.habitLogs.clear()
         await db.routines.clear()
+        
+        // Tandai agar tidak di-seed default lagi
+        localStorage.setItem('tuntask_seeded', 'true')
+
         alert('Seluruh data berhasil dihapus!')
         window.location.reload()
       } catch (err) {

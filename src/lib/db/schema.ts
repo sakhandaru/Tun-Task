@@ -21,6 +21,12 @@ export class TunTaskDB extends Dexie {
 export const db = new TunTaskDB()
 
 export async function seedDefaultsIfEmpty(): Promise<void> {
+  // Jika sudah pernah di-seed atau sengaja di-reset, jangan isi template lagi
+  const alreadySeeded = localStorage.getItem('tuntask_seeded')
+  if (alreadySeeded === 'true') {
+    return
+  }
+
   const habitCount = await db.habits.count()
   const routineCount = await db.routines.count()
 
@@ -62,4 +68,7 @@ export async function seedDefaultsIfEmpty(): Promise<void> {
       },
     ])
   }
+
+  // Tandai bahwa proses seeding pertama sudah selesai
+  localStorage.setItem('tuntask_seeded', 'true')
 }
