@@ -10,7 +10,7 @@ interface SettingsSheetProps {
   onClose: () => void
 }
 
-type View = 'menu' | 'routines' | 'guide_user' | 'guide_nlp'
+type View = 'menu' | 'routines' | 'guide_user' | 'guide_nlp' | 'integrations' | 'backup_reset'
 
 export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   const routines = useRoutines()
@@ -161,10 +161,12 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
               </button>
             )}
             <h2 className="text-xl font-semibold text-[var(--color-text)]">
-              {view === 'menu' && 'Menu Utama'}
+              {view === 'menu' && 'Pengaturan'}
               {view === 'routines' && 'Paket Rutinitas'}
               {view === 'guide_user' && 'Panduan Penggunaan'}
               {view === 'guide_nlp' && 'Panduan Tambah Cepat'}
+              {view === 'integrations' && 'Integrasi Kalender'}
+              {view === 'backup_reset' && 'Cadangan & Reset'}
             </h2>
           </div>
           <button
@@ -177,56 +179,85 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
         </div>
 
         {view === 'menu' && (
-          <div className="space-y-3">
+          <div className="divide-y divide-[var(--color-border)]">
             <button
               onClick={() => setView('routines')}
-              className="w-full flex items-center justify-between p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] active:scale-[0.98] transition-transform"
+              className="w-full flex items-center justify-between py-4 text-left active:opacity-75 transition-opacity cursor-pointer"
             >
-              <span className="text-sm font-medium">Kelola Paket Rutinitas</span>
+              <span className="text-sm font-medium text-[var(--color-text)]">Paket Rutinitas</span>
               <span className="text-[10px] font-mono text-[var(--color-text-muted)]">ATUR →</span>
             </button>
 
             <button
-              onClick={() => setView('guide_user')}
-              className="w-full flex items-center justify-between p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] active:scale-[0.98] transition-transform"
+              onClick={() => setView('integrations')}
+              className="w-full flex items-center justify-between py-4 text-left active:opacity-75 transition-opacity cursor-pointer"
             >
-              <span className="text-sm font-medium">Panduan Penggunaan</span>
+              <span className="text-sm font-medium text-[var(--color-text)]">Integrasi Kalender</span>
+              <span className="text-[10px] font-mono text-[var(--color-text-muted)]">
+                {isConnected ? 'TERHUBUNG ✓' : 'HUBUNGKAN →'}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setView('backup_reset')}
+              className="w-full flex items-center justify-between py-4 text-left active:opacity-75 transition-opacity cursor-pointer"
+            >
+              <span className="text-sm font-medium text-[var(--color-text)]">Cadangan & Reset Data</span>
+              <span className="text-[10px] font-mono text-[var(--color-text-muted)]">KELOLA →</span>
+            </button>
+
+            <button
+              onClick={() => setView('guide_user')}
+              className="w-full flex items-center justify-between py-4 text-left active:opacity-75 transition-opacity cursor-pointer"
+            >
+              <span className="text-sm font-medium text-[var(--color-text)]">Panduan Penggunaan</span>
               <span className="text-[10px] font-mono text-[var(--color-text-muted)]">LIHAT →</span>
             </button>
 
             <button
               onClick={() => setView('guide_nlp')}
-              className="w-full flex items-center justify-between p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] active:scale-[0.98] transition-transform"
+              className="w-full flex items-center justify-between py-4 text-left active:opacity-75 transition-opacity cursor-pointer"
             >
-              <span className="text-sm font-medium">Panduan Tambah Cepat (NLP)</span>
+              <span className="text-sm font-medium text-[var(--color-text)]">Panduan Tambah Cepat (NLP)</span>
               <span className="text-[10px] font-mono text-[var(--color-text-muted)]">LIHAT →</span>
             </button>
+          </div>
+        )}
 
-            <button
-              onClick={() => (isConnected ? handleDisconnect() : void loginGoogle())}
-              className={`w-full flex items-center justify-between p-4 rounded-xl border active:scale-[0.98] transition-all ${
-                isConnected
-                  ? 'border-green-500/30 bg-green-500/5'
-                  : 'border-[var(--color-border)] bg-[var(--color-bg-secondary)]'
-              }`}
-            >
-              <div className="text-left">
-                <span className={`block text-sm font-medium ${isConnected ? 'text-green-500' : ''}`}>
-                  {isConnected ? 'Google Calendar Terhubung' : 'Hubungkan Google Calendar'}
-                </span>
-                <span className="block text-[10px] text-[var(--color-text-muted)]">
-                  {isConnected ? 'Klik untuk putuskan akses' : 'Aktifkan notifikasi agenda'}
-                </span>
-              </div>
-              <span
-                className={`text-[10px] font-mono ${
-                  isConnected ? 'text-green-500' : 'text-[var(--color-accent)]'
-                }`}
-              >
-                {isConnected ? 'AKTIF ✓' : 'HUBUNGKAN →'}
+        {view === 'integrations' && (
+          <div className="space-y-4">
+            <div className={`p-4 rounded-xl border ${
+              isConnected ? 'border-green-500/20 bg-green-500/5' : 'border-[var(--color-border)] bg-[var(--color-bg-secondary)]'
+            } space-y-3`}>
+              <span className={`block text-[10px] font-mono tracking-widest ${isConnected ? 'text-green-500' : 'text-[var(--color-text-muted)]'} uppercase`}>
+                GOOGLE CALENDAR
               </span>
-            </button>
+              <p className="text-[11px] text-[var(--color-text-muted)] leading-relaxed">
+                Hubungkan TunTask dengan Google Calendar untuk menyinkronkan tugas dan agenda harian Anda secara dua arah.
+              </p>
+              <button
+                type="button"
+                onClick={() => (isConnected ? handleDisconnect() : void loginGoogle())}
+                style={{
+                  fontFamily: 'Geist Mono Variable, ui-monospace, monospace',
+                  fontSize: 9,
+                  letterSpacing: '0.12em',
+                  padding: '10px 12px',
+                  borderRadius: '9999px',
+                  background: isConnected ? 'var(--color-accent)' : 'var(--color-text)',
+                  color: isConnected ? '#ffffff' : 'var(--color-bg)',
+                  border: 'none'
+                }}
+                className="w-full hover:opacity-90 active:scale-95 transition-all text-center uppercase font-semibold cursor-pointer"
+              >
+                {isConnected ? 'PUTUSKAN KONEKSI' : 'HUBUNGKAN SEKARANG'}
+              </button>
+            </div>
+          </div>
+        )}
 
+        {view === 'backup_reset' && (
+          <div className="space-y-4">
             {/* Cadangan Data (Backup & Restore) */}
             <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] space-y-3">
               <span className="block text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase">CADANGAN DATA</span>
@@ -238,7 +269,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                   type="button"
                   onClick={handleExport}
                   style={{ fontFamily: 'Geist Mono Variable, ui-monospace, monospace', fontSize: 9, letterSpacing: '0.12em', padding: '6px 12px', borderRadius: '9999px', background: 'var(--color-text)', color: 'var(--color-bg)', border: 'none' }}
-                  className="flex-1 hover:opacity-90 active:scale-95 transition-all text-center uppercase"
+                  className="flex-1 hover:opacity-90 active:scale-95 transition-all text-center uppercase cursor-pointer"
                 >
                   EKSPOR
                 </button>
@@ -261,8 +292,8 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
             </div>
 
             {/* Mulai Ulang / Reset Data */}
-            <div className="p-4 rounded-xl border border-[rgba(215,25,33,0.15)] bg-[rgba(215,25,33,0.01)] space-y-3">
-              <span className="block text-[10px] font-mono tracking-widest text-[var(--color-accent)] uppercase">PENGATURAN LANJUTAN</span>
+            <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] space-y-3">
+              <span className="block text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase">PENGATURAN LANJUTAN</span>
               <p className="text-[11px] text-[var(--color-text-muted)] leading-relaxed">
                 Hapus semua tugas, habit, dan paket rutinitas dari penyimpanan lokal browser untuk memulai dari awal.
               </p>
