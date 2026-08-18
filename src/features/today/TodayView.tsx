@@ -50,7 +50,7 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
   }, [])
 
   // Format date and time
-  const dateLabel = format(clock, 'EEEE, d MMMM', { locale: id })
+  const dateLabel = format(clock, 'EEE, d MMM', { locale: id })
   const hh = String(clock.getHours()).padStart(2, '0')
   const mm = String(clock.getMinutes()).padStart(2, '0')
   const ss = String(clock.getSeconds()).padStart(2, '0')
