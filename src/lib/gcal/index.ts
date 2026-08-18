@@ -112,3 +112,30 @@ export async function syncTodoToCalendar(todo: Todo) {
     console.error('GCal Sync Error:', err)
   }
 }
+
+export type GCalStatus = 'connected' | 'expired' | 'disconnected'
+
+export function getGCalStatus(): GCalStatus {
+  const token = localStorage.getItem('gcal_token')
+  const expiry = localStorage.getItem('gcal_token_expiry')
+  
+  if (!token) return 'disconnected'
+  if (!expiry || Date.now() > parseInt(expiry)) return 'expired'
+  return 'connected'
+}
+
+export async function reconnectGCal(): Promise<boolean> {
+  const status = getGCalStatus()
+  if (status === 'disconnected') {
+    await loginGoogle()
+    return false
+  } else {
+    // expired or connected
+    const token = await ensureAuth()
+    if (!token) {
+      await loginGoogle()
+      return false
+    }
+    return true
+  }
+}

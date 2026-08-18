@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
 import { HabitMiniHeatmap } from '../../components/habits/HabitMiniHeatmap'
@@ -21,6 +21,7 @@ import {
 } from '../../lib/db/operations'
 import { getMiniHeatmapDays } from '../../lib/habits/stats'
 import type { Habit, HabitLog } from '../../lib/db/types'
+import { getGCalStatus, reconnectGCal, ensureAuth, type GCalStatus } from '../../lib/gcal'
 
 interface TodayViewProps {
   onSelectHabit: (habit: Habit) => void
@@ -38,6 +39,21 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
   const routines = useRoutines()
   const today = todayKey()
   const dateLabel = format(nowInTz(), 'EEEE, d MMMM', { locale: id })
+
+  const [gcalStatus, setGcalStatus] = useState<GCalStatus>('disconnected')
+
+  useEffect(() => {
+    const updateStatus = () => {
+      setGcalStatus(getGCalStatus())
+    }
+    updateStatus()
+    window.addEventListener('gcal_auth_changed', updateStatus)
+    const interval = setInterval(updateStatus, 20000)
+    return () => {
+      window.removeEventListener('gcal_auth_changed', updateStatus)
+      clearInterval(interval)
+    }
+  }, [])
 
   const [challenge, setChallenge] = useState<{
     open: boolean
@@ -78,6 +94,38 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
     })
   }
 
+  const handleRefreshClick = async () => {
+    let shouldReload = true
+    
+    if (gcalStatus !== 'connected') {
+      const status = getGCalStatus()
+      if (status === 'expired') {
+        const token = await ensureAuth()
+        if (!token) {
+          shouldReload = false
+          await reconnectGCal()
+        }
+      } else {
+        shouldReload = false
+        await reconnectGCal()
+      }
+    }
+    
+    if (shouldReload) {
+      if ('serviceWorker' in navigator) {
+        try {
+          const registrations = await navigator.serviceWorker.getRegistrations()
+          for (const r of registrations) {
+            await r.unregister()
+          }
+        } catch (err) {
+          console.error(err)
+        }
+      }
+      window.location.reload()
+    }
+  }
+
   return (
     <div className="space-y-8 pt-2">
       <header className="flex items-center justify-between">
@@ -87,23 +135,31 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
         <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={() => {
-              if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then((registrations) => {
-                  for (const r of registrations) {
-                    r.unregister()
-                  }
-                  window.location.reload()
-                }).catch(() => {
-                  window.location.reload()
-                })
-              } else {
-                window.location.reload()
-              }
-            }}
+            onClick={() => void reconnectGCal()}
+            className="flex items-center justify-center p-2.5 relative transition-transform duration-200 active:scale-90"
+            title={`Google Calendar: ${
+              gcalStatus === 'connected' ? 'Tersambung (Hijau)' : 
+              gcalStatus === 'expired' ? 'Sesi Habis / Klik Hubungkan (Kuning)' : 
+              'Terputus / Klik Hubungkan (Merah)'
+            }. Klik untuk hubungkan ulang.`}
+            aria-label="Google Calendar Status"
+          >
+            <span
+              className={`h-2.5 w-2.5 rounded-full transition-all duration-300 ${
+                gcalStatus === 'connected'
+                  ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.7)]'
+                  : gcalStatus === 'expired'
+                  ? 'bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.7)] animate-pulse'
+                  : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]'
+              }`}
+            />
+          </button>
+          <button
+            type="button"
+            onClick={handleRefreshClick}
             className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
             aria-label="Hard Refresh"
-            title="Force Reload & Update PWA"
+            title="Force Reload & Update PWA (Rekoneksi GCal jika putus)"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
