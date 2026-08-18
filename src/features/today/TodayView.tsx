@@ -328,16 +328,16 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
                     <button
                       type="button"
                       onClick={() => handleCancelTodo(todo.id)}
-                      style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.1em' }}
-                      className="shrink-0 text-[var(--color-accent)]/75 hover:text-[var(--color-accent)] transition-colors"
+                      style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.12em', padding: '4px 10px', borderRadius: '9999px', background: 'var(--color-accent)', color: '#ffffff', border: 'none' }}
+                      className="shrink-0 hover:opacity-90 active:scale-95 transition-all"
                     >
                       BATAL
                     </button>
                     <button
                       type="button"
                       onClick={() => handleSnooze(todo.id)}
-                      style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.1em' }}
-                      className="shrink-0 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+                      style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.12em', padding: '4px 10px', borderRadius: '9999px', background: 'var(--color-text)', color: 'var(--color-bg)', border: 'none' }}
+                      className="shrink-0 hover:opacity-90 active:scale-95 transition-all"
                     >
                       BESOK
                     </button>
@@ -438,8 +438,8 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
                     <button
                       type="button"
                       onClick={() => handleSkipHabit(habit.id)}
-                      style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.1em' }}
-                      className="shrink-0 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+                      style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.12em', padding: '4px 10px', borderRadius: '9999px', background: 'var(--color-text)', color: 'var(--color-bg)', border: 'none' }}
+                      className="shrink-0 hover:opacity-90 active:scale-95 transition-all"
                     >
                       LEWATI
                     </button>

@@ -145,7 +145,8 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                   <button
                     type="button"
                     onClick={() => setIsAdding(true)}
-                    className="text-[10px] font-mono text-[var(--color-accent)]"
+                    style={{ fontFamily: 'Geist Mono Variable, ui-monospace, monospace', fontSize: 9, letterSpacing: '0.12em', padding: '3px 8px', borderRadius: '9999px', background: 'var(--color-text)', color: 'var(--color-bg)', border: 'none' }}
+                    className="shrink-0 hover:opacity-90 active:scale-95 transition-all"
                   >
                     + BARU
                   </button>
@@ -167,10 +168,20 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                     }}
                   />
                   <div className="mt-4 flex justify-end gap-4 text-[10px] font-mono">
-                    <button type="button" onClick={() => setIsAdding(false)}>
+                    <button
+                      type="button"
+                      onClick={() => setIsAdding(false)}
+                      style={{ fontFamily: 'Geist Mono Variable, ui-monospace, monospace', fontSize: 9, letterSpacing: '0.12em', padding: '4px 10px', borderRadius: '9999px', background: 'var(--color-accent)', color: '#ffffff', border: 'none' }}
+                      className="shrink-0 hover:opacity-90 active:scale-95 transition-all"
+                    >
                       BATAL
                     </button>
-                    <button type="button" onClick={handleAdd} className="text-[var(--color-accent)]">
+                    <button
+                      type="button"
+                      onClick={handleAdd}
+                      style={{ fontFamily: 'Geist Mono Variable, ui-monospace, monospace', fontSize: 9, letterSpacing: '0.12em', padding: '4px 10px', borderRadius: '9999px', background: 'var(--color-text)', color: 'var(--color-bg)', border: 'none' }}
+                      className="shrink-0 hover:opacity-90 active:scale-95 transition-all"
+                    >
                       SIMPAN
                     </button>
                   </div>
@@ -251,7 +262,8 @@ function RoutineRow({
           <button
             type="button"
             onClick={onToggleEdit}
-            className="text-[9px] font-mono text-[var(--color-accent)]"
+            style={{ fontFamily: 'Geist Mono Variable, ui-monospace, monospace', fontSize: 9, letterSpacing: '0.12em', padding: '3px 8px', borderRadius: '9999px', background: 'var(--color-text)', color: 'var(--color-bg)', border: 'none' }}
+            className="shrink-0 hover:opacity-90 active:scale-95 transition-all"
           >
             {isEditing ? 'TUTUP' : 'ATUR'}
           </button>
@@ -259,7 +271,8 @@ function RoutineRow({
             <button
               type="button"
               onClick={onDelete}
-              className="text-[9px] font-mono text-[var(--color-text-muted)]"
+              style={{ fontFamily: 'Geist Mono Variable, ui-monospace, monospace', fontSize: 9, letterSpacing: '0.12em', padding: '3px 8px', borderRadius: '9999px', background: 'var(--color-accent)', color: '#ffffff', border: 'none' }}
+              className="shrink-0 hover:opacity-90 active:scale-95 transition-all"
             >
               HAPUS
             </button>
@@ -326,7 +339,8 @@ function RoutineRow({
               <button
                 type="button"
                 onClick={addItem}
-                className="ml-auto font-mono text-[9px] text-[var(--color-accent)]"
+                style={{ fontFamily: 'Geist Mono Variable, ui-monospace, monospace', fontSize: 9, letterSpacing: '0.12em', padding: '4px 10px', borderRadius: '9999px', background: 'var(--color-text)', color: 'var(--color-bg)', border: 'none' }}
+                className="ml-auto shrink-0 hover:opacity-90 active:scale-95 transition-all"
               >
                 + TAMBAH
               </button>

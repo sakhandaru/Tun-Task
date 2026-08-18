@@ -90,7 +90,8 @@ export function TomorrowView({ onSelectHabit }: TomorrowViewProps) {
                   <button
                     type="button"
                     onClick={() => void snoozeTodo(todo.id, 1)}
-                    className="shrink-0 font-mono text-[10px] text-[var(--color-text-muted)]"
+                    style={{ fontFamily: 'Geist Mono Variable, ui-monospace, monospace', fontSize: 9, letterSpacing: '0.12em', padding: '4px 10px', borderRadius: '9999px', background: 'var(--color-text)', color: 'var(--color-bg)', border: 'none' }}
+                    className="shrink-0 hover:opacity-90 active:scale-95 transition-all"
                   >
                     LUSA
                   </button>
