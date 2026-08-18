@@ -9,14 +9,24 @@ interface CreateHabitSheetProps {
 }
 
 const WEEKDAYS = [
-  { label: 'Min', value: 0 },
-  { label: 'Sen', value: 1 },
-  { label: 'Sel', value: 2 },
-  { label: 'Rab', value: 3 },
-  { label: 'Kam', value: 4 },
-  { label: 'Jum', value: 5 },
-  { label: 'Sab', value: 6 },
+  { label: 'MIN', value: 0 },
+  { label: 'SEN', value: 1 },
+  { label: 'SEL', value: 2 },
+  { label: 'RAB', value: 3 },
+  { label: 'KAM', value: 4 },
+  { label: 'JUM', value: 5 },
+  { label: 'SAB', value: 6 },
 ]
+
+const SCHEDULE_OPTS = [
+  { label: 'HARIAN', value: 'daily', desc: 'Setiap hari' },
+  { label: 'MINGGUAN', value: 'weekdays', desc: 'Hari tertentu' },
+  { label: 'BULANAN', value: 'monthly', desc: 'Tanggal tertentu' },
+  { label: 'INTERVAL', value: 'interval', desc: 'Setiap N hari' },
+] as const
+
+const MONO = 'Geist Mono Variable, ui-monospace, monospace'
+const SANS = 'Geist Variable, system-ui, sans-serif'
 
 export function CreateHabitSheet({ open, onClose }: CreateHabitSheetProps) {
   const [title, setTitle] = useState('')
@@ -39,33 +49,21 @@ export function CreateHabitSheet({ open, onClose }: CreateHabitSheetProps) {
     setError('')
 
     const cleanTitle = title.trim()
-    if (!cleanTitle) {
-      setError('Nama habit harus diisi')
-      return
-    }
+    if (!cleanTitle) { setError('Nama habit harus diisi'); return }
 
     let schedule: HabitSchedule = { kind: 'daily' }
 
     if (scheduleKind === 'weekdays') {
-      if (selectedDays.length === 0) {
-        setError('Pilih minimal satu hari dalam seminggu')
-        return
-      }
+      if (selectedDays.length === 0) { setError('Pilih minimal satu hari'); return }
       schedule = { kind: 'weekdays', days: selectedDays }
     } else if (scheduleKind === 'monthly') {
-      const parsedDay = Math.floor(dayOfMonth)
-      if (isNaN(parsedDay) || parsedDay < 1 || parsedDay > 31) {
-        setError('Tanggal bulanan harus di antara 1 sampai 31')
-        return
-      }
-      schedule = { kind: 'monthly', dayOfMonth: parsedDay }
+      const p = Math.floor(dayOfMonth)
+      if (isNaN(p) || p < 1 || p > 31) { setError('Tanggal harus 1–31'); return }
+      schedule = { kind: 'monthly', dayOfMonth: p }
     } else if (scheduleKind === 'interval') {
-      const parsedInterval = Math.floor(intervalDays)
-      if (isNaN(parsedInterval) || parsedInterval < 1) {
-        setError('Interval hari harus lebih besar dari 0')
-        return
-      }
-      schedule = { kind: 'interval', intervalDays: parsedInterval }
+      const p = Math.floor(intervalDays)
+      if (isNaN(p) || p < 1) { setError('Interval harus lebih dari 0'); return }
+      schedule = { kind: 'interval', intervalDays: p }
     }
 
     try {
@@ -75,99 +73,180 @@ export function CreateHabitSheet({ open, onClose }: CreateHabitSheetProps) {
         schedule,
         createdAt: new Date().toISOString(),
       })
-
-      // Reset Form
       setTitle('')
       setScheduleKind('daily')
       setSelectedDays([])
       setDayOfMonth(1)
       setIntervalDays(4)
-
       scheduleSync()
       onClose()
     } catch (err) {
       console.error(err)
-      setError('Gagal menyimpan habit ke database')
+      setError('Gagal menyimpan habit')
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      {/* Backdrop tap to close */}
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center"
+      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
+    >
+      {/* Backdrop */}
       <div className="absolute inset-0 -z-10" onClick={onClose} />
 
-      <div className="w-full max-w-md max-h-[85dvh] overflow-y-auto bg-[var(--color-bg)] rounded-3xl border border-[var(--color-border)] p-6 shadow-2xl transition-transform duration-300">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold tracking-tight text-[var(--color-text)]">
-            🎯 Buat Habit Baru
-          </h2>
+      {/* Sheet — slides up from bottom */}
+      <div
+        className="sheet-panel w-full max-h-[92dvh] overflow-y-auto"
+        style={{
+          background: 'var(--color-bg)',
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 28,
+          borderTop: '1px solid var(--color-border)',
+          padding: '0 0 48px',
+        }}
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Buat Habit Baru"
+      >
+        {/* Handle bar */}
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 8 }}>
+          <div style={{ width: 40, height: 4, borderRadius: 9999, background: 'var(--color-border)' }} />
+        </div>
+
+        {/* Header */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 24px 20px',
+          borderBottom: '1px solid var(--color-border)',
+        }}>
+          <div>
+            <p style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.2em', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>
+              BUAT BARU
+            </p>
+            <h2 style={{ fontFamily: SANS, fontSize: 22, fontWeight: 600, color: 'var(--color-text)', margin: 0, letterSpacing: '-0.02em' }}>
+              Habit
+            </h2>
+          </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 font-mono text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+            style={{
+              fontFamily: MONO,
+              fontSize: 9,
+              letterSpacing: '0.2em',
+              textTransform: 'uppercase',
+              color: 'var(--color-text-muted)',
+              background: 'none',
+              border: 'none',
+              padding: '8px 0',
+              cursor: 'pointer',
+            }}
           >
             TUTUP
           </button>
         </div>
 
-        <form onSubmit={handleSave} className="space-y-5">
+        {/* Form */}
+        <form onSubmit={handleSave} style={{ padding: '24px 24px 0' }}>
+
+          {/* Error */}
           {error && (
-            <p className="p-3 text-xs font-semibold text-red-500 bg-red-500/10 rounded-lg">
-              ⚠️ {error}
-            </p>
+            <div style={{
+              fontFamily: MONO,
+              fontSize: 10,
+              letterSpacing: '0.1em',
+              color: 'var(--color-accent)',
+              background: 'rgba(215,25,33,0.08)',
+              border: '1px solid rgba(215,25,33,0.2)',
+              borderRadius: 12,
+              padding: '10px 14px',
+              marginBottom: 20,
+            }}>
+              {error}
+            </div>
           )}
 
-          {/* Nama Habit */}
-          <div className="space-y-1.5">
-            <label htmlFor="habit-title" className="text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase">
-              Nama Habit
+          {/* ── Nama Habit ── */}
+          <div style={{ marginBottom: 28 }}>
+            <label
+              htmlFor="habit-title"
+              style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--color-text-muted)', display: 'block', marginBottom: 10 }}
+            >
+              NAMA HABIT
             </label>
             <input
               id="habit-title"
               type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              placeholder="Contoh: Minum Air, Olahraga"
-              className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)]"
+              placeholder="Olahraga, Minum air, Meditasi…"
               autoFocus
+              style={{
+                fontFamily: SANS,
+                fontSize: 18,
+                fontWeight: 400,
+                width: '100%',
+                background: 'none',
+                border: 'none',
+                borderBottom: '1px solid var(--color-border)',
+                color: 'var(--color-text)',
+                padding: '8px 0 12px',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
             />
           </div>
 
-          {/* Tipe Penjadwalan */}
-          <div className="space-y-2">
-            <label className="text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase">
-              Jenis Penjadwalan
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { label: '📅 Harian', value: 'daily' },
-                { label: '🗓️ Mingguan', value: 'weekdays' },
-                { label: '🌕 Bulanan', value: 'monthly' },
-                { label: '🔁 Kustom Interval', value: 'interval' },
-              ].map(opt => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setScheduleKind(opt.value as any)}
-                  className={`px-3 py-2.5 rounded-xl border text-xs font-medium text-center transition-all ${
-                    scheduleKind === opt.value
-                      ? 'bg-[var(--color-accent)] border-[var(--color-accent)] text-[var(--color-bg)]'
-                      : 'bg-transparent border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
+          {/* ── Jenis Jadwal ── */}
+          <div style={{ marginBottom: 24 }}>
+            <p style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: 12 }}>
+              JADWAL
+            </p>
+            {/* 4 pill options */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {SCHEDULE_OPTS.map(opt => {
+                const active = scheduleKind === opt.value
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setScheduleKind(opt.value)}
+                    style={{
+                      fontFamily: MONO,
+                      fontSize: 10,
+                      letterSpacing: '0.12em',
+                      textTransform: 'uppercase',
+                      padding: '8px 16px',
+                      borderRadius: 9999,
+                      border: `1px solid ${active ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                      background: active ? 'var(--color-accent)' : 'transparent',
+                      color: active ? '#fff' : 'var(--color-text-muted)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
-          {/* Form Detil Jadwal berdasarkan tipe */}
+          {/* ── Hari (weekdays) ── */}
           {scheduleKind === 'weekdays' && (
-            <div className="space-y-2 p-4 bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-2xl">
-              <span className="text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase block mb-1">
-                Hari dalam Seminggu
-              </span>
-              <div className="flex flex-wrap gap-2">
+            <div style={{
+              marginBottom: 24,
+              padding: '16px',
+              border: '1px solid var(--color-border)',
+              borderRadius: 16,
+            }}>
+              <p style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: 12 }}>
+                HARI AKTIF
+              </p>
+              <div style={{ display: 'flex', gap: 6 }}>
                 {WEEKDAYS.map(day => {
                   const active = selectedDays.includes(day.value as Weekday)
                   return (
@@ -175,11 +254,19 @@ export function CreateHabitSheet({ open, onClose }: CreateHabitSheetProps) {
                       key={day.value}
                       type="button"
                       onClick={() => handleToggleDay(day.value as Weekday)}
-                      className={`flex-1 min-w-[50px] py-2 rounded-lg border text-xs font-semibold text-center transition-all ${
-                        active
-                          ? 'bg-[var(--color-text)] border-[var(--color-text)] text-[var(--color-bg)]'
-                          : 'bg-transparent border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
-                      }`}
+                      style={{
+                        flex: 1,
+                        fontFamily: MONO,
+                        fontSize: 9,
+                        letterSpacing: '0.08em',
+                        padding: '10px 4px',
+                        borderRadius: 10,
+                        border: `1px solid ${active ? 'var(--color-text)' : 'var(--color-border)'}`,
+                        background: active ? 'var(--color-text)' : 'transparent',
+                        color: active ? 'var(--color-bg)' : 'var(--color-text-muted)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s',
+                      }}
                     >
                       {day.label}
                     </button>
@@ -189,10 +276,19 @@ export function CreateHabitSheet({ open, onClose }: CreateHabitSheetProps) {
             </div>
           )}
 
+          {/* ── Tanggal (monthly) ── */}
           {scheduleKind === 'monthly' && (
-            <div className="space-y-1.5 p-4 bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-2xl">
-              <label htmlFor="habit-dom" className="text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase block">
-                Tanggal Setiap Bulan
+            <div style={{
+              marginBottom: 24,
+              padding: '16px',
+              border: '1px solid var(--color-border)',
+              borderRadius: 16,
+            }}>
+              <label
+                htmlFor="habit-dom"
+                style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--color-text-muted)', display: 'block', marginBottom: 10 }}
+              >
+                TANGGAL SETIAP BULAN
               </label>
               <input
                 id="habit-dom"
@@ -201,42 +297,93 @@ export function CreateHabitSheet({ open, onClose }: CreateHabitSheetProps) {
                 max="31"
                 value={dayOfMonth}
                 onChange={e => setDayOfMonth(parseInt(e.target.value, 10))}
-                className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl px-4 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
+                style={{
+                  fontFamily: MONO,
+                  fontSize: 28,
+                  fontWeight: 300,
+                  letterSpacing: '-0.02em',
+                  width: 80,
+                  background: 'none',
+                  border: 'none',
+                  borderBottom: '1px solid var(--color-border)',
+                  color: 'var(--color-text)',
+                  padding: '4px 0 8px',
+                  outline: 'none',
+                  textAlign: 'center',
+                }}
               />
-              <span className="text-[10px] text-[var(--color-text-muted)] block mt-1">
-                * Habit ini hanya akan muncul sekali sebulan pada tanggal yang dipilih.
-              </span>
+              <p style={{ fontFamily: MONO, fontSize: 9, color: 'var(--color-text-muted)', marginTop: 8 }}>
+                Habit muncul sekali sebulan pada tanggal ini
+              </p>
             </div>
           )}
 
+          {/* ── Interval ── */}
           {scheduleKind === 'interval' && (
-            <div className="space-y-1.5 p-4 bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-2xl">
-              <label htmlFor="habit-interval" className="text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase block">
-                Ulangi Setiap (N) Hari
+            <div style={{
+              marginBottom: 24,
+              padding: '16px',
+              border: '1px solid var(--color-border)',
+              borderRadius: 16,
+            }}>
+              <label
+                htmlFor="habit-interval"
+                style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--color-text-muted)', display: 'block', marginBottom: 10 }}
+              >
+                ULANGI SETIAP
               </label>
-              <div className="flex items-center gap-3">
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
                 <input
                   id="habit-interval"
                   type="number"
                   min="1"
                   value={intervalDays}
                   onChange={e => setIntervalDays(parseInt(e.target.value, 10))}
-                  className="w-24 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl px-4 py-2 text-sm text-[var(--color-text)] text-center focus:outline-none focus:border-[var(--color-accent)]"
+                  style={{
+                    fontFamily: MONO,
+                    fontSize: 28,
+                    fontWeight: 300,
+                    letterSpacing: '-0.02em',
+                    width: 64,
+                    background: 'none',
+                    border: 'none',
+                    borderBottom: '1px solid var(--color-border)',
+                    color: 'var(--color-text)',
+                    padding: '4px 0 8px',
+                    outline: 'none',
+                    textAlign: 'center',
+                  }}
                 />
-                <span className="text-xs text-[var(--color-text-muted)]">
-                  Hari Sekali (Contoh: 4 = Setiap 4 hari sekali)
+                <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.1em', color: 'var(--color-text-muted)' }}>
+                  HARI SEKALI
                 </span>
               </div>
             </div>
           )}
 
-          {/* Tombol Simpan */}
-          <div className="pt-4">
+          {/* ── Submit ── */}
+          <div style={{ paddingTop: 8 }}>
             <button
               type="submit"
-              className="w-full bg-[var(--color-accent)] text-[var(--color-bg)] py-3.5 rounded-xl text-sm font-semibold tracking-wide hover:opacity-95 transition-all shadow-md active:scale-[0.98]"
+              style={{
+                width: '100%',
+                fontFamily: MONO,
+                fontSize: 11,
+                letterSpacing: '0.2em',
+                textTransform: 'uppercase',
+                fontWeight: 600,
+                padding: '16px',
+                borderRadius: 16,
+                border: 'none',
+                background: 'var(--color-accent)',
+                color: '#fff',
+                cursor: 'pointer',
+                transition: 'opacity 0.15s, transform 0.15s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
             >
-              Simpan Habit
+              SIMPAN HABIT
             </button>
           </div>
         </form>
