@@ -329,14 +329,13 @@ export function ReviewView() {
         <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>
           HARI INI
         </span>
-        {/* Geist SANS — typography beda dari widget lain */}
         <span style={{ fontFamily: PIXEL, fontWeight: 800, fontSize: Math.floor(cell * 0.8), color: '#ffffff', lineHeight: 1, letterSpacing: '-0.05em' }}>
           {scores.today}
         </span>
       </div>
 
       {/* ════════════════════════════════════════════
-          6. BACKLOG — col 1-2, row 5-6 (2×2)
+          6. BACKLOG — col 3-4, row 5-6 (2×2)
              Shape: Rounded Rect
              Color: WHITE if >0, DARK if 0
              Typography: Geist SANS bold (berbeda!)
@@ -345,7 +344,7 @@ export function ReviewView() {
         type="button"
         onClick={() => setShowBacklog(true)}
         style={{
-          gridColumn: '1 / 3',
+          gridColumn: '3 / 5',
           gridRow: '5 / 7',
           borderRadius: 24,
           backgroundColor: backlog.length > 0 ? '#ffffff' : '#111111',
@@ -373,7 +372,6 @@ export function ReviewView() {
           BACKLOG
         </span>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-          {/* Geist SANS — same typography class as SKOR HARI INI */}
           <span style={{ fontFamily: PIXEL, fontWeight: 800, fontSize: Math.floor(cell * 0.8), color: backlog.length > 0 ? '#000000' : '#ffffff', lineHeight: 1, letterSpacing: '-0.05em' }}>
             {backlog.length}
           </span>
@@ -387,12 +385,12 @@ export function ReviewView() {
       </button>
 
       {/* ════════════════════════════════════════════
-          7. MINGGU — col 3-4, row 5 (2×1)
+          7. MINGGU — col 1-2, row 5 (2×1)
              Shape: Pill — DARK
           ════════════════════════════════════════════ */}
       <div
         style={{
-          gridColumn: '3 / 5',
+          gridColumn: '1 / 3',
           gridRow: '5 / 6',
           borderRadius: 9999,
           background: '#111111',
@@ -414,12 +412,12 @@ export function ReviewView() {
       </div>
 
       {/* ════════════════════════════════════════════
-          8. BULAN — col 3-4, row 6 (2×1)
+          8. BULAN — col 1-2, row 6 (2×1)
              Shape: Pill — DARKER
           ════════════════════════════════════════════ */}
       <div
         style={{
-          gridColumn: '3 / 5',
+          gridColumn: '1 / 3',
           gridRow: '6 / 7',
           borderRadius: 9999,
           background: '#0d0d0d',
