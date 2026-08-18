@@ -3,6 +3,7 @@ import { useRoutines } from '../../hooks/useLiveDb'
 import { createRoutine, deleteRoutine, updateRoutine } from '../../lib/db/operations'
 import type { Routine, RoutineItem } from '../../lib/db/types'
 import { loginGoogle } from '../../lib/gcal'
+import { db } from '../../lib/db/schema'
 
 interface SettingsSheetProps {
   open: boolean
@@ -33,6 +34,66 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
     window.addEventListener('gcal_auth_changed', checkConnection)
     return () => window.removeEventListener('gcal_auth_changed', checkConnection)
   }, [])
+
+  const handleExport = async () => {
+    try {
+      const todos = await db.todos.toArray()
+      const habits = await db.habits.toArray()
+      const habitLogs = await db.habitLogs.toArray()
+      const routinesData = await db.routines.toArray()
+      
+      const backup = { todos, habits, habitLogs, routines: routinesData }
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `tuntask-cadangan-${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error(err)
+      alert('Gagal mengekspor data.')
+    }
+  }
+
+  const handleImport = async (file: File) => {
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string)
+        if (!data.todos && !data.habits && !data.habitLogs) {
+          alert('Format file cadangan tidak valid.')
+          return
+        }
+        
+        if (confirm('Impor data akan menimpa seluruh data saat ini. Lanjutkan?')) {
+          if (data.todos) {
+            await db.todos.clear()
+            await db.todos.bulkAdd(data.todos)
+          }
+          if (data.habits) {
+            await db.habits.clear()
+            await db.habits.bulkAdd(data.habits)
+          }
+          if (data.habitLogs) {
+            await db.habitLogs.clear()
+            await db.habitLogs.bulkAdd(data.habitLogs)
+          }
+          if (data.routines) {
+            await db.routines.clear()
+            await db.routines.bulkAdd(data.routines)
+          }
+          alert('Data berhasil diimpor!')
+          window.location.reload()
+        }
+      } catch (err) {
+        console.error(err)
+        alert('Gagal membaca file cadangan.')
+      }
+    }
+    reader.readAsText(file)
+  }
 
   if (!open) return null
 
@@ -149,6 +210,39 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                 {isConnected ? 'AKTIF ✓' : 'HUBUNGKAN →'}
               </span>
             </button>
+
+            {/* Cadangan Data (Backup & Restore) */}
+            <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] space-y-3">
+              <span className="block text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase">CADANGAN DATA</span>
+              <p className="text-[11px] text-[var(--color-text-muted)] leading-relaxed">
+                Ekspor data Anda ke file JSON untuk dipindahkan ke HP baru, lalu impor file tersebut di HP baru Anda.
+              </p>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleExport}
+                  style={{ fontFamily: 'Geist Mono Variable, ui-monospace, monospace', fontSize: 9, letterSpacing: '0.12em', padding: '6px 12px', borderRadius: '9999px', background: 'var(--color-text)', color: 'var(--color-bg)', border: 'none' }}
+                  className="flex-1 hover:opacity-90 active:scale-95 transition-all text-center uppercase"
+                >
+                  EKSPOR
+                </button>
+                <label
+                  style={{ fontFamily: 'Geist Mono Variable, ui-monospace, monospace', fontSize: 9, letterSpacing: '0.12em', padding: '6px 12px', borderRadius: '9999px', background: 'var(--color-text)', color: 'var(--color-bg)', border: 'none', cursor: 'pointer' }}
+                  className="flex-1 hover:opacity-90 active:scale-95 transition-all text-center uppercase block"
+                >
+                  IMPOR
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) void handleImport(file)
+                    }}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
           </div>
         )}
 
