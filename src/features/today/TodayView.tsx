@@ -32,20 +32,25 @@ function logStatus(logs: HabitLog[], habitId: string): HabitLog | undefined {
   return logs.find((l) => l.habitId === habitId)
 }
 
+/* ─── Font constants ──── */
+const MONO = 'Geist Mono Variable, ui-monospace, monospace'
+
 export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
   const todos = useTodayTodos()
   const { habits, logs } = useTodayHabits()
   const allLogs = useAllHabitLogs()
   const routines = useRoutines()
   const today = todayKey()
-  const dateLabel = format(nowInTz(), 'EEEE, d MMMM', { locale: id })
+
+  // Date parts for Nothing-style header
+  const now = nowInTz()
+  const dayName = format(now, 'EEE', { locale: id }).toUpperCase()
+  const dateFull = format(now, 'd MMM', { locale: id }).toUpperCase()
 
   const [gcalStatus, setGcalStatus] = useState<GCalStatus>('disconnected')
 
   useEffect(() => {
-    const updateStatus = () => {
-      setGcalStatus(getGCalStatus())
-    }
+    const updateStatus = () => setGcalStatus(getGCalStatus())
     updateStatus()
     window.addEventListener('gcal_auth_changed', updateStatus)
     const interval = setInterval(updateStatus, 20000)
@@ -96,7 +101,6 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
 
   const handleRefreshClick = async () => {
     let shouldReload = true
-    
     if (gcalStatus !== 'connected') {
       const status = getGCalStatus()
       if (status === 'expired') {
@@ -110,14 +114,11 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
         await reconnectGCal()
       }
     }
-    
     if (shouldReload) {
       if ('serviceWorker' in navigator) {
         try {
           const registrations = await navigator.serviceWorker.getRegistrations()
-          for (const r of registrations) {
-            await r.unregister()
-          }
+          for (const r of registrations) await r.unregister()
         } catch (err) {
           console.error(err)
         }
@@ -126,75 +127,86 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
     }
   }
 
+  // Progress counts
+  const todoDone = todos.filter((t) => !!t.completedAt).length
+  const todoTotal = todos.length
+  const habitDone = habits.filter((h) => logStatus(logs, h.id)?.status === 'done').length
+  const habitTotal = habits.length
+
   return (
-    <div className="space-y-8 pt-2">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight capitalize text-[var(--color-text)]">
-          {dateLabel}
-        </h1>
-        <div className="flex items-center gap-1">
+    <div className="pt-2 space-y-0">
+
+      {/* ── HEADER ── */}
+      <header className="flex items-start justify-between mb-6">
+        <div>
+          {/* Day label — tiny mono */}
+          <p style={{
+            fontFamily: MONO,
+            fontSize: 10,
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--color-text-muted)',
+            margin: 0,
+            lineHeight: 1,
+            marginBottom: 4,
+          }}>
+            {dayName}
+          </p>
+          {/* Big date — Geist Mono */}
+          <h1 style={{
+            fontFamily: MONO,
+            fontSize: 32,
+            fontWeight: 300,
+            letterSpacing: '-0.03em',
+            color: 'var(--color-text)',
+            margin: 0,
+            lineHeight: 1,
+          }}>
+            {dateFull}
+          </h1>
+        </div>
+
+        {/* Buttons: GCal · Refresh · Settings */}
+        <div className="flex items-center gap-1 mt-1">
+          {/* GCal dot */}
           <button
             type="button"
             onClick={() => void reconnectGCal()}
             className="flex items-center justify-center p-2.5 relative transition-transform duration-200 active:scale-90"
-            title={`Google Calendar: ${
-              gcalStatus === 'connected' ? 'Tersambung (Hijau)' : 
-              gcalStatus === 'expired' ? 'Sesi Habis / Klik Hubungkan (Kuning)' : 
-              'Terputus / Klik Hubungkan (Merah)'
-            }. Klik untuk hubungkan ulang.`}
+            title={`Google Calendar: ${gcalStatus === 'connected' ? 'Tersambung' : gcalStatus === 'expired' ? 'Sesi Habis' : 'Terputus'}. Klik untuk hubungkan ulang.`}
             aria-label="Google Calendar Status"
           >
-            <span
-              className={`h-2.5 w-2.5 rounded-full transition-all duration-300 ${
-                gcalStatus === 'connected'
-                  ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.7)]'
-                  : gcalStatus === 'expired'
-                  ? 'bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.7)] animate-pulse'
-                  : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]'
-              }`}
-            />
+            <span className={`h-2.5 w-2.5 rounded-full transition-all duration-300 ${
+              gcalStatus === 'connected'
+                ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.7)]'
+                : gcalStatus === 'expired'
+                ? 'bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.7)] animate-pulse'
+                : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]'
+            }`} />
           </button>
+          {/* Refresh */}
           <button
             type="button"
             onClick={handleRefreshClick}
             className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
             aria-label="Hard Refresh"
-            title="Force Reload & Update PWA (Rekoneksi GCal jika putus)"
+            title="Force Reload & Update PWA"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
               <path d="M16 3h5v5" />
               <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
               <path d="M8 21H3v-5" />
             </svg>
           </button>
+          {/* Settings */}
           <button
             type="button"
             onClick={onOpenSettings}
             className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
             aria-label="Pengaturan"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12.22 2h-.44a2 2 0 0 0-2 2 2 2 0 0 1-2 2 2 2 0 0 0-2 2 2 2 0 0 1-2 2 2 2 0 0 0-2 2v.44a2 2 0 0 0 2 2 2 2 0 0 1 2 2 2 2 0 0 0 2 2 2 2 0 0 1 2 2 2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2 2 2 0 0 1 2-2 2 2 0 0 0 2-2 2 2 0 0 1 2-2 2 2 0 0 0 2-2v-.44a2 2 0 0 0-2-2 2 2 0 0 1-2-2 2 2 0 0 0-2-2 2 2 0 0 1-2-2 2 2 0 0 0-2-2Z" />
               <circle cx="12" cy="12" r="3" />
             </svg>
@@ -202,8 +214,9 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
         </div>
       </header>
 
+      {/* ── ROUTINES ── */}
       {routines.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 mb-6">
           {routines.map((r) => (
             <button
               key={r.id}
@@ -217,12 +230,62 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
         </div>
       )}
 
-      <section>
-        <h2 className="section-label mb-2">Tugas</h2>
-        <div className="divider mb-0" />
+      {/* ── TUGAS SECTION ── */}
+      <section className="mb-8">
+        {/* Section header with count */}
+        <div className="flex items-center justify-between mb-3">
+          <h2 style={{
+            fontFamily: MONO,
+            fontSize: 10,
+            letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+            color: 'var(--color-text-muted)',
+            margin: 0,
+          }}>
+            TUGAS
+          </h2>
+          {todoTotal > 0 && (
+            <span style={{
+              fontFamily: MONO,
+              fontSize: 10,
+              letterSpacing: '0.1em',
+              color: todoDone === todoTotal ? 'var(--color-accent)' : 'var(--color-text-muted)',
+            }}>
+              {todoDone}/{todoTotal}
+            </span>
+          )}
+        </div>
+
+        {/* Progress bar */}
+        {todoTotal > 0 && (
+          <div style={{
+            height: 1,
+            background: 'var(--color-border)',
+            marginBottom: 0,
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              width: `${(todoDone / todoTotal) * 100}%`,
+              background: 'var(--color-accent)',
+              transition: 'width 0.4s ease',
+            }} />
+          </div>
+        )}
+        {todoTotal === 0 && <div className="divider" />}
+
         {todos.length === 0 ? (
-          <p className="py-6 text-sm text-[var(--color-text-muted)]">
-            Belum ada tugas. Tekan + untuk menambah.
+          <p style={{
+            fontFamily: MONO,
+            fontSize: 11,
+            letterSpacing: '0.1em',
+            color: 'var(--color-text-muted)',
+            padding: '24px 0',
+            textTransform: 'uppercase',
+          }}>
+            Tidak ada tugas hari ini
           </p>
         ) : (
           <ul>
@@ -230,21 +293,23 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
               <li key={todo.id} className="list-row group">
                 <button
                   type="button"
-                  onClick={() =>
-                    void (todo.completedAt ? uncompleteTodo(todo.id) : completeTodo(todo.id))
-                  }
+                  onClick={() => void (todo.completedAt ? uncompleteTodo(todo.id) : completeTodo(todo.id))}
                   className={`check-circle shrink-0 ${todo.completedAt ? 'check-circle--done' : ''}`}
                   aria-label={todo.completedAt ? 'Batalkan' : 'Selesai'}
                 />
                 <div className="min-w-0 flex-1">
-                  <p
-                    className={`text-[15px] leading-snug ${todo.priority ? 'font-semibold' : ''} ${
-                      todo.completedAt ? 'line-through text-[var(--color-text-muted)]' : ''
-                    }`}
-                  >
+                  <p className={`leading-snug ${todo.priority ? 'font-semibold' : ''} ${
+                    todo.completedAt ? 'line-through text-[var(--color-text-muted)]' : ''
+                  }`} style={{ fontSize: 15 }}>
                     {todo.title}
                   </p>
-                  <p className="mt-0.5 font-mono text-[10px] text-[var(--color-text-muted)]">
+                  <p style={{
+                    fontFamily: MONO,
+                    fontSize: 10,
+                    letterSpacing: '0.1em',
+                    color: 'var(--color-text-muted)',
+                    marginTop: 3,
+                  }}>
                     {todo.scheduledAt ? formatDisplayTime(new Date(todo.scheduledAt)) : 'Hari ini'}
                     {todo.completedAt && ' · SELESAI'}
                   </p>
@@ -254,14 +319,16 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
                     <button
                       type="button"
                       onClick={() => handleCancelTodo(todo.id)}
-                      className="shrink-0 font-mono text-[10px] text-red-500/40 hover:text-red-500 transition-colors"
+                      style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.1em' }}
+                      className="shrink-0 text-red-500/40 hover:text-red-500 transition-colors"
                     >
                       BATAL
                     </button>
                     <button
                       type="button"
                       onClick={() => handleSnooze(todo.id)}
-                      className="shrink-0 font-mono text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+                      style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.1em' }}
+                      className="shrink-0 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
                     >
                       BESOK
                     </button>
@@ -273,11 +340,63 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
         )}
       </section>
 
-      <section>
-        <h2 className="section-label mb-2">Habit</h2>
-        <div className="divider mb-0" />
+      {/* ── HABIT SECTION ── */}
+      <section className="mb-8">
+        {/* Section header with count */}
+        <div className="flex items-center justify-between mb-3">
+          <h2 style={{
+            fontFamily: MONO,
+            fontSize: 10,
+            letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+            color: 'var(--color-text-muted)',
+            margin: 0,
+          }}>
+            HABIT
+          </h2>
+          {habitTotal > 0 && (
+            <span style={{
+              fontFamily: MONO,
+              fontSize: 10,
+              letterSpacing: '0.1em',
+              color: habitDone === habitTotal ? 'var(--color-accent)' : 'var(--color-text-muted)',
+            }}>
+              {habitDone}/{habitTotal}
+            </span>
+          )}
+        </div>
+
+        {/* Progress bar */}
+        {habitTotal > 0 && (
+          <div style={{
+            height: 1,
+            background: 'var(--color-border)',
+            marginBottom: 0,
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              width: `${(habitDone / habitTotal) * 100}%`,
+              background: 'var(--color-accent)',
+              transition: 'width 0.4s ease',
+            }} />
+          </div>
+        )}
+        {habitTotal === 0 && <div className="divider" />}
+
         {habits.length === 0 ? (
-          <p className="py-6 text-sm text-[var(--color-text-muted)]">Belum ada habit hari ini.</p>
+          <p style={{
+            fontFamily: MONO,
+            fontSize: 11,
+            letterSpacing: '0.1em',
+            color: 'var(--color-text-muted)',
+            padding: '24px 0',
+            textTransform: 'uppercase',
+          }}>
+            Tidak ada habit hari ini
+          </p>
         ) : (
           <ul>
             {habits.map((habit) => {
@@ -299,9 +418,7 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
                     onClick={() => onSelectHabit(habit)}
                     className="min-w-0 flex-1 text-left"
                   >
-                    <p
-                      className={`text-[15px] ${done ? 'text-[var(--color-text-muted)] line-through' : ''}`}
-                    >
+                    <p className={`text-[15px] ${done ? 'text-[var(--color-text-muted)] line-through' : ''}`}>
                       {habit.title}
                     </p>
                     <div className="mt-2">
@@ -312,7 +429,8 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
                     <button
                       type="button"
                       onClick={() => handleSkipHabit(habit.id)}
-                      className="shrink-0 font-mono text-[10px] text-[var(--color-text-muted)]"
+                      style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.1em' }}
+                      className="shrink-0 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
                     >
                       LEWATI
                     </button>
@@ -323,6 +441,7 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
           </ul>
         )}
       </section>
+
       <ChallengeModal
         open={challenge.open}
         title={challenge.title}
