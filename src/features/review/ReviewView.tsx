@@ -39,7 +39,6 @@ const GAP = 8
 export function ReviewView() {
   const stats = useWeeklyStats()
   const scores = useScoreStats()
-  const habitRate = stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0
 
   // Live clock
   const [clock, setClock] = useState(() => new Date())
@@ -67,7 +66,6 @@ export function ReviewView() {
   const [backlog, setBacklog] = useState<Todo[]>([])
   const [allLogs, setAllLogs] = useState<HabitLog[]>([])
   const [weekDone, setWeekDone] = useState(0)
-  const [weekTotal, setWeekTotal] = useState(0)
   const [showBacklog, setShowBacklog] = useState(false)
 
   useEffect(() => {
@@ -101,23 +99,20 @@ export function ReviewView() {
         })
         .toArray()
 
-      let done = 0, total = 0
+      let done = 0
       for (let i = 0; i < 7; i++) {
         const dk = dateKey(addDays(now, -i))
         const day = weekTodos.filter(t =>
           t.dueDate === dk ||
           (t.scheduledAt ? dateKey(new Date(t.scheduledAt)) === dk : false),
         )
-        total += day.length
         done += day.filter(t => !!t.completedAt).length
       }
       setWeekDone(done)
-      setWeekTotal(total)
     })()
   }, [])
 
   const streak = useMemo(() => calcStreak(allLogs), [allLogs])
-  const taskRate = weekTotal > 0 ? Math.round((weekDone / weekTotal) * 100) : 0
 
   // Time strings
   const hh = p2(clock.getHours())
@@ -249,7 +244,7 @@ export function ReviewView() {
           TUGAS
         </span>
         <span style={{ fontFamily: PIXEL, fontWeight: 700, fontSize: Math.floor(cell * 0.36), color: '#000000', letterSpacing: '-0.02em', lineHeight: 1 }}>
-          {taskRate}%
+          {weekDone}
         </span>
       </div>
 
@@ -276,7 +271,7 @@ export function ReviewView() {
           HABIT
         </span>
         <span style={{ fontFamily: PIXEL, fontWeight: 700, fontSize: Math.floor(cell * 0.36), color: '#ffffff', letterSpacing: '-0.02em', lineHeight: 1 }}>
-          {habitRate}%
+          {stats.done}
         </span>
       </div>
 

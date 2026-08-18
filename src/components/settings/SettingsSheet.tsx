@@ -414,7 +414,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
               <div className="border-t border-[var(--color-border)] pt-4">
                 <h4 className="text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase mb-2">SISTEM SKOR & STREAK</h4>
                 <p className="text-sm text-[var(--color-text)] leading-relaxed">
-                  Poin Anda bertambah setiap kali tugas/habit diselesaikan. Selesaikan habit secara berurutan tanpa putus untuk menaikkan <span className="text-[var(--color-accent)] font-semibold">Streak Hari</span> Anda.
+                  Mendapatkan <span className="text-[var(--color-accent)] font-semibold">+10 XP</span> untuk setiap tugas atau habit yang diselesaikan. Streak dihitung dari jumlah hari beruntun Anda berhasil mencentang minimal satu kebiasaan (habit).
                 </p>
               </div>
             </section>
