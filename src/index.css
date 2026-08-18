@@ -1,8 +1,21 @@
+/* Geist Sans & Mono — font resmi Vercel (unicode-range otomatis, hanya Latin yang didownload) */
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
 @import 'tailwindcss';
 
+/* Geist Pixel Square — font dot-matrix resmi dari Vercel */
+@font-face {
+  font-family: 'GeistPixel Square';
+  src: url('/fonts/GeistPixel_Square.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-sans: 'Geist Variable', system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+  --font-pixel: 'GeistPixel Square', 'Geist Mono Variable', monospace;
 }
 
 @layer base {
