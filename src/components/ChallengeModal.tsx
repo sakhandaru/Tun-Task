@@ -41,7 +41,7 @@ export function ChallengeModal({
         className="w-full max-w-sm rounded-2xl bg-[var(--color-surface)] p-6 shadow-2xl border border-[var(--color-border)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-bold text-red-500 mb-2 uppercase tracking-tight">{title}</h2>
+        <h2 className="text-lg font-bold text-[var(--color-accent)] mb-2 uppercase tracking-tight">{title}</h2>
         <p className="text-sm text-[var(--color-text-muted)] mb-6 leading-relaxed">
           {description}
         </p>
@@ -77,7 +77,7 @@ export function ChallengeModal({
           <button
             onClick={handleConfirm}
             disabled={input.trim().toUpperCase() !== phrase.toUpperCase()}
-            className="flex-1 py-3 bg-red-500/10 rounded-xl font-mono text-[10px] tracking-widest text-red-500 uppercase disabled:opacity-20"
+            className="flex-1 py-3 bg-[var(--color-accent)]/10 rounded-xl font-mono text-[10px] tracking-widest text-[var(--color-accent)] uppercase disabled:opacity-20"
           >
             KONFIRMASI
           </button>

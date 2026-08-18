@@ -147,7 +147,7 @@ export function HabitDetailSheet({ habit, onClose }: HabitDetailSheetProps) {
                 })
               }
             }}
-            className="w-full py-3 font-mono text-[10px] tracking-widest text-red-500 uppercase opacity-60 hover:opacity-100"
+            className="w-full py-3 font-mono text-[10px] tracking-widest text-[var(--color-accent)] uppercase opacity-60 hover:opacity-100"
           >
             Hapus Permanen
           </button>

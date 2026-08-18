@@ -9,7 +9,7 @@ import {
   useTodayHabits,
   useTodayTodos,
 } from '../../hooks/useLiveDb'
-import { formatDisplayTime, nowInTz, todayKey } from '../../lib/dates'
+import { formatDisplayTime, todayKey } from '../../lib/dates'
 import {
   cancelTodo,
   completeTodo,
@@ -42,10 +42,19 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
   const routines = useRoutines()
   const today = todayKey()
 
-  // Date parts for Nothing-style header
-  const now = nowInTz()
-  const dayName = format(now, 'EEE', { locale: id }).toUpperCase()
-  const dateFull = format(now, 'd MMM', { locale: id }).toUpperCase()
+  // Live ticking clock state
+  const [clock, setClock] = useState(() => new Date())
+  useEffect(() => {
+    const t = setInterval(() => setClock(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [])
+
+  // Format date and time
+  const dateLabel = format(clock, 'EEEE, d MMMM', { locale: id })
+  const hh = String(clock.getHours()).padStart(2, '0')
+  const mm = String(clock.getMinutes()).padStart(2, '0')
+  const ss = String(clock.getSeconds()).padStart(2, '0')
+  const timeString = `${hh}:${mm}:${ss}`
 
   const [gcalStatus, setGcalStatus] = useState<GCalStatus>('disconnected')
 
@@ -139,31 +148,31 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
       {/* ── HEADER ── */}
       <header className="flex items-start justify-between mb-6">
         <div>
-          {/* Day label — tiny mono */}
-          <p style={{
-            fontFamily: MONO,
-            fontSize: 10,
-            letterSpacing: '0.22em',
-            textTransform: 'uppercase',
-            color: 'var(--color-text-muted)',
-            margin: 0,
-            lineHeight: 1,
-            marginBottom: 4,
-          }}>
-            {dayName}
-          </p>
-          {/* Big date — Geist Mono */}
+          {/* Big date — Geist Pixel */}
           <h1 style={{
-            fontFamily: MONO,
-            fontSize: 32,
+            fontFamily: 'GeistPixel Square, Geist Mono Variable, monospace',
+            fontSize: 28,
             fontWeight: 300,
-            letterSpacing: '-0.03em',
+            letterSpacing: '-0.02em',
             color: 'var(--color-text)',
             margin: 0,
             lineHeight: 1,
           }}>
-            {dateFull}
+            {dateLabel}
           </h1>
+          {/* Live digital clock — Geist Mono */}
+          <h2 style={{
+            fontFamily: 'Geist Mono Variable, ui-monospace, monospace',
+            fontSize: 11,
+            letterSpacing: '0.15em',
+            textTransform: 'uppercase',
+            color: 'var(--color-text-muted)',
+            margin: 0,
+            marginTop: 6,
+            lineHeight: 1,
+          }}>
+            {timeString}
+          </h2>
         </div>
 
         {/* Buttons: GCal · Refresh · Settings */}
@@ -181,7 +190,7 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
                 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.7)]'
                 : gcalStatus === 'expired'
                 ? 'bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.7)] animate-pulse'
-                : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]'
+                : 'bg-[var(--color-accent)] shadow-[0_0_8px_rgba(215,25,33,0.7)]'
             }`} />
           </button>
           {/* Refresh */}
@@ -320,7 +329,7 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
                       type="button"
                       onClick={() => handleCancelTodo(todo.id)}
                       style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.1em' }}
-                      className="shrink-0 text-red-500/40 hover:text-red-500 transition-colors"
+                      className="shrink-0 text-[var(--color-accent)]/75 hover:text-[var(--color-accent)] transition-colors"
                     >
                       BATAL
                     </button>

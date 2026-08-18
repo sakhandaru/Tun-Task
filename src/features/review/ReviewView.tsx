@@ -302,9 +302,14 @@ export function ReviewView() {
         <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)' }}>
           STREAK
         </span>
-        <p style={{ fontFamily: PIXEL, fontWeight: 300, fontSize: Math.floor(cell * 0.62), color: '#ffffff', lineHeight: 0.95, letterSpacing: '-0.04em', margin: 0 }}>
-          {streak}
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <p style={{ fontFamily: PIXEL, fontWeight: 300, fontSize: Math.floor(cell * 0.62), color: '#ffffff', lineHeight: 0.95, letterSpacing: '-0.04em', margin: 0 }}>
+            {streak}
+          </p>
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#ffffff' }}>
+            <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+          </svg>
+        </div>
         <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)' }}>
           HARI
         </span>
@@ -364,13 +369,27 @@ export function ReviewView() {
           textAlign: 'left',
         }}
       >
-        <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: backlog.length > 0 ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.3)' }}>
+        <span style={{
+          fontFamily: MONO,
+          fontSize: 9,
+          letterSpacing: '0.16em',
+          textTransform: 'uppercase',
+          color: backlog.length > 0 ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.3)',
+        }}>
           BACKLOG
         </span>
-        {/* Geist SANS — same typography class as SKOR HARI INI */}
-        <span style={{ fontFamily: PIXEL, fontWeight: 800, fontSize: Math.floor(cell * 0.8), color: backlog.length > 0 ? '#000000' : '#ffffff', lineHeight: 1, letterSpacing: '-0.05em' }}>
-          {backlog.length}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+          {/* Geist SANS — same typography class as SKOR HARI INI */}
+          <span style={{ fontFamily: PIXEL, fontWeight: 800, fontSize: Math.floor(cell * 0.8), color: backlog.length > 0 ? '#000000' : '#ffffff', lineHeight: 1, letterSpacing: '-0.05em' }}>
+            {backlog.length}
+          </span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: backlog.length > 0 ? '#000000' : '#ffffff', transform: 'translateY(-2px)' }}>
+            <rect width="20" height="12" x="2" y="6" rx="2"/>
+            <path d="M12 12h.01"/>
+            <path d="M17 12h.01"/>
+            <path d="M7 12h.01"/>
+          </svg>
+        </div>
       </button>
 
       {/* ════════════════════════════════════════════

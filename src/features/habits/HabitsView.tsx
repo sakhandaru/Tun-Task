@@ -13,9 +13,26 @@ export function HabitsView({ onSelectHabit, onCreateHabit }: HabitsViewProps) {
     <div className="space-y-6 pt-2">
       <header className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-text)]">Habit</h1>
-          <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-            Ketuk untuk lihat kalender & graf
+          <h1 style={{
+            fontFamily: 'GeistPixel Square, Geist Mono Variable, monospace',
+            fontSize: 30,
+            fontWeight: 300,
+            letterSpacing: '-0.02em',
+            color: 'var(--color-text)',
+            margin: 0,
+            lineHeight: 1,
+          }}>
+            HABIT
+          </h1>
+          <p style={{
+            fontFamily: 'Geist Mono Variable, ui-monospace, monospace',
+            fontSize: 9,
+            letterSpacing: '0.15em',
+            textTransform: 'uppercase',
+            color: 'var(--color-text-muted)',
+            marginTop: 6,
+          }}>
+            Ketuk untuk kalender & grafik
           </p>
         </div>
         <button

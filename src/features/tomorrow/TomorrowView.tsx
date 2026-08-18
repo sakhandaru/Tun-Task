@@ -17,17 +17,35 @@ export function TomorrowView({ onSelectHabit }: TomorrowViewProps) {
   const habits = useTomorrowHabits()
   
   const tomorrowDate = addDays(nowInTz(), 1)
-  const dateLabel = format(tomorrowDate, 'EEEE, d MMMM', { locale: id })
+  const dayName = format(tomorrowDate, 'EEE', { locale: id }).toUpperCase()
+  const dateFull = format(tomorrowDate, 'd MMM', { locale: id }).toUpperCase()
 
   return (
     <div className="space-y-8 pt-2">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight capitalize text-[var(--color-text)]">
-          {dateLabel}
-        </h1>
-        <p className="mt-1 text-xs text-[var(--color-text-muted)] font-mono uppercase tracking-widest">
-          RENCANA BESOK
+      <header className="mb-6">
+        <p style={{
+          fontFamily: 'Geist Mono Variable, ui-monospace, monospace',
+          fontSize: 10,
+          letterSpacing: '0.22em',
+          textTransform: 'uppercase',
+          color: 'var(--color-text-muted)',
+          margin: 0,
+          lineHeight: 1,
+          marginBottom: 4,
+        }}>
+          {dayName} · BESOK
         </p>
+        <h1 style={{
+          fontFamily: 'GeistPixel Square, Geist Mono Variable, monospace',
+          fontSize: 30,
+          fontWeight: 300,
+          letterSpacing: '-0.02em',
+          color: 'var(--color-text)',
+          margin: 0,
+          lineHeight: 1,
+        }}>
+          {dateFull}
+        </h1>
       </header>
 
       <section>
