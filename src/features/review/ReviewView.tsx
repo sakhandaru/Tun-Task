@@ -347,8 +347,8 @@ export function ReviewView() {
           gridColumn: '3 / 5',
           gridRow: '5 / 7',
           borderRadius: 24,
-          backgroundColor: backlog.length > 0 ? '#ffffff' : '#111111',
-          border: `1px solid ${backlog.length > 0 ? 'rgba(0,0,0,0.07)' : '#1e1e1e'}`,
+          backgroundColor: '#ffffff',
+          border: '1px solid rgba(0,0,0,0.07)',
           padding: '14px 16px',
           height: h2,
           boxSizing: 'border-box',
@@ -367,15 +367,15 @@ export function ReviewView() {
           fontSize: 9,
           letterSpacing: '0.16em',
           textTransform: 'uppercase',
-          color: backlog.length > 0 ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.3)',
+          color: 'rgba(0,0,0,0.35)',
         }}>
           BACKLOG
         </span>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-          <span style={{ fontFamily: PIXEL, fontWeight: 800, fontSize: Math.floor(cell * 0.8), color: backlog.length > 0 ? '#000000' : '#ffffff', lineHeight: 1, letterSpacing: '-0.05em' }}>
+          <span style={{ fontFamily: PIXEL, fontWeight: 800, fontSize: Math.floor(cell * 0.8), color: '#000000', lineHeight: 1, letterSpacing: '-0.05em' }}>
             {backlog.length}
           </span>
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: backlog.length > 0 ? '#000000' : '#ffffff', transform: 'translateY(-2px)' }}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#000000', transform: 'translateY(-2px)' }}>
             <rect width="20" height="12" x="2" y="6" rx="2"/>
             <path d="M12 12h.01"/>
             <path d="M17 12h.01"/>
