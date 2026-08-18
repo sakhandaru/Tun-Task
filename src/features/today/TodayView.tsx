@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
 import { HabitMiniHeatmap } from '../../components/habits/HabitMiniHeatmap'
@@ -81,6 +82,16 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
     onConfirm: () => {},
   })
 
+  const [toast, setToast] = useState<{ id: number; text: string; tone: 'plus' | 'minus' } | null>(null)
+  const toastTimer = useRef<number | null>(null)
+  const toastCounter = useRef(0)
+  const flash = (text: string, tone: 'plus' | 'minus') => {
+    if (toastTimer.current) window.clearTimeout(toastTimer.current)
+    toastCounter.current += 1
+    setToast({ id: toastCounter.current, text, tone })
+    toastTimer.current = window.setTimeout(() => setToast(null), 900)
+  }
+
   const handleSnooze = (todoId: string) => {
     setChallenge({
       open: true,
@@ -95,7 +106,10 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
       open: true,
       title: 'Lewati Habit?',
       description: 'Konsistensi adalah kunci. Melewati hari ini berarti merusak momentum Anda.',
-      onConfirm: () => void skipHabit(habitId, today),
+      onConfirm: () => {
+        void skipHabit(habitId, today)
+        flash('-5', 'minus')
+      },
     })
   }
 
@@ -104,7 +118,10 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
       open: true,
       title: 'Batalkan Tugas?',
       description: 'Tugas ini akan dianggap tidak ada dan tidak mempengaruhi persentase progres.',
-      onConfirm: () => void cancelTodo(todoId),
+      onConfirm: () => {
+        void cancelTodo(todoId)
+        flash('-5', 'minus')
+      },
     })
   }
 
@@ -302,7 +319,14 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
               <li key={todo.id} className="list-row group">
                 <button
                   type="button"
-                  onClick={() => void (todo.completedAt ? uncompleteTodo(todo.id) : completeTodo(todo.id))}
+                  onClick={() => {
+                  if (todo.completedAt) {
+                    void uncompleteTodo(todo.id)
+                  } else {
+                    void completeTodo(todo.id)
+                    flash('+10', 'plus')
+                  }
+                }}
                   className={`check-circle shrink-0 ${todo.completedAt ? 'check-circle--done' : ''}`}
                   aria-label={todo.completedAt ? 'Batalkan' : 'Selesai'}
                 />
@@ -418,7 +442,10 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
                 <li key={habit.id} className="list-row">
                   <button
                     type="button"
-                    onClick={() => void toggleHabitDone(habit.id, today)}
+                    onClick={() => {
+                    void toggleHabitDone(habit.id, today)
+                    if (!done) flash('+10', 'plus')
+                  }}
                     className={`check-circle shrink-0 ${done ? 'check-circle--done' : ''}`}
                     aria-label={done ? 'Batalkan' : 'Selesai'}
                   />
@@ -459,6 +486,35 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
         onConfirm={challenge.onConfirm}
         onClose={() => setChallenge((prev) => ({ ...prev, open: false }))}
       />
+
+      <AnimatePresence>
+        {toast && (
+          <div
+            key={toast.id}
+            style={{ position: 'fixed', bottom: 28, left: 0, right: 0, display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 90 }}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 14, scale: 0.92 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -14, scale: 0.95 }}
+              transition={{ duration: 0.25 }}
+              style={{
+                fontFamily: MONO,
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: '0.1em',
+                padding: '10px 18px',
+                borderRadius: 9999,
+                background: toast.tone === 'plus' ? '#ffffff' : 'var(--color-accent)',
+                color: toast.tone === 'plus' ? '#000000' : '#ffffff',
+                boxShadow: '0 8px 30px rgba(0,0,0,0.35)',
+              }}
+            >
+              {toast.text}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

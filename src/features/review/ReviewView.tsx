@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { addDays } from 'date-fns'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useWeeklyStats, useScoreStats } from '../../hooks/useLiveDb'
+import { useWeeklyStats, useScoreStats, useCompletedTodosInRange } from '../../hooks/useLiveDb'
 import { db } from '../../lib/db/schema'
 import { completeTodo } from '../../lib/db/operations'
 import { dateKey, nowInTz } from '../../lib/dates'
@@ -65,6 +65,8 @@ export function ReviewView() {
 
   // Data
   const [showBacklog, setShowBacklog] = useState(false)
+  const [showBreakdown, setShowBreakdown] = useState(false)
+  const [openPeriod, setOpenPeriod] = useState<'week' | 'month' | null>(null)
 
   // Reactive Backlog query
   const backlog = useLiveQuery(async () => {
@@ -110,6 +112,14 @@ export function ReviewView() {
   }) ?? 0
 
   const streak = useMemo(() => calcStreak(allLogs), [allLogs])
+
+  // Completed todos per period (for MINGGU / BULAN drill-down)
+  const rangeNow = nowInTz()
+  const weekStart = dateKey(addDays(rangeNow, -6))
+  const monthStart = dateKey(new Date(rangeNow.getFullYear(), rangeNow.getMonth(), 1))
+  const todayK = dateKey(rangeNow)
+  const weekCompleted = useCompletedTodosInRange(weekStart, todayK)
+  const monthCompleted = useCompletedTodosInRange(monthStart, todayK)
 
   // Time strings
   const hh = p2(clock.getHours())
@@ -162,6 +172,125 @@ export function ReviewView() {
                   <p style={{ fontSize: 14, color: 'var(--color-text)' }}>{todo.title}</p>
                   <p style={{ marginTop: 2, fontFamily: MONO, fontSize: 10, color: 'var(--color-text-muted)' }}>
                     {fmtDate(todo.dueDate)}{todo.priority ? ' · PRIORITAS' : ''}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    )
+  }
+
+  /* ── BREAKDOWN VIEW ── */
+  if (showBreakdown) {
+    const b = scores.todayBreakdown
+    const rows: { label: string; detail: string; value: number }[] = []
+    if (b.habitDone > 0) rows.push({ label: 'HABIT SELESAI', detail: `\u00d7${b.habitDone}`, value: b.habitDone * 10 })
+    if (b.todoOnTime > 0) rows.push({ label: 'TUGAS TEPAT WAKTU', detail: `\u00d7${b.todoOnTime}`, value: b.todoOnTime * 10 })
+    if (b.todoLate > 0) rows.push({ label: 'TUGAS TELAT', detail: `\u00d7${b.todoLate}`, value: b.todoLate * 5 })
+    if (b.perfect) rows.push({ label: 'PERFECT DAY', detail: '', value: 20 })
+    if (b.skipped > 0) rows.push({ label: 'SKIP HABIT', detail: `\u00d7${b.skipped}`, value: -b.skipped * 5 })
+    if (b.cancelled > 0) rows.push({ label: 'BATALKAN TUGAS', detail: `\u00d7${b.cancelled}`, value: -b.cancelled * 5 })
+
+    return (
+      <div style={{ paddingTop: 8 }}>
+        <button
+          type="button"
+          onClick={() => setShowBreakdown(false)}
+          style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--color-text-muted)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+        >
+          ← KEMBALI
+        </button>
+        <h1 style={{ marginTop: 12, fontFamily: SANS, fontSize: 24, fontWeight: 600, color: 'var(--color-text)' }}>Rincian Skor</h1>
+        <p style={{ marginTop: 4, marginBottom: 24, fontFamily: MONO, fontSize: 11, color: 'var(--color-text-muted)' }}>
+          HARI INI · {scores.todayBreakdown.perfect ? 'PERFECT DAY' : 'AKTIVITAS'}
+        </p>
+        <ul>
+          {rows.map((row) => (
+            <li key={row.label} className="list-row">
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 14, color: 'var(--color-text)' }}>{row.label}</p>
+                {row.detail && (
+                  <p style={{ marginTop: 2, fontFamily: MONO, fontSize: 10, color: 'var(--color-text-muted)' }}>
+                    {row.detail}
+                  </p>
+                )}
+              </div>
+              <span
+                style={{
+                  fontFamily: MONO,
+                  fontSize: 16,
+                  fontWeight: 700,
+                  letterSpacing: '-0.02em',
+                  color: row.value >= 0 ? '#22c55e' : 'var(--color-accent)',
+                }}
+              >
+                {row.value >= 0 ? `+${row.value}` : row.value}
+              </span>
+            </li>
+          ))}
+          {rows.length === 0 && (
+            <p style={{ padding: '48px 0', textAlign: 'center', fontFamily: MONO, fontSize: 11, letterSpacing: '0.15em', color: 'var(--color-text-muted)' }}>
+              TIDAK ADA AKTIVITAS HARI INI
+            </p>
+          )}
+        </ul>
+        <div className="list-row" style={{ marginTop: 16, borderTop: '1px solid var(--color-border)', paddingTop: 14 }}>
+          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text)' }}>TOTAL</p>
+          <span style={{ fontFamily: MONO, fontSize: 22, fontWeight: 800, color: 'var(--color-text)' }}>
+            {scores.today}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  /* ── PERIOD VIEW (MINGGU / BULAN) ── */
+  if (openPeriod) {
+    const isWeek = openPeriod === 'week'
+    const items = isWeek ? weekCompleted : monthCompleted
+    const total = isWeek ? scores.week : scores.month
+    const rangeStart = isWeek ? weekStart : monthStart
+    const periodHabitsDone = allLogs.filter(
+      (l) => l.status === 'done' && l.date >= rangeStart && l.date <= todayK,
+    ).length
+    const fmtDate = (d?: string) => {
+      if (!d) return '—'
+      const parts = d.split('-')
+      return `${parseInt(parts[2], 10)} ${MON[parseInt(parts[1], 10) - 1]}`
+    }
+
+    return (
+      <div style={{ paddingTop: 8 }}>
+        <button
+          type="button"
+          onClick={() => setOpenPeriod(null)}
+          style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--color-text-muted)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+        >
+          ← KEMBALI
+        </button>
+        <h1 style={{ marginTop: 12, fontFamily: SANS, fontSize: 24, fontWeight: 600, color: 'var(--color-text)' }}>
+          {isWeek ? 'Minggu Ini' : 'Bulan Ini'}
+        </h1>
+        <p style={{ marginTop: 4, fontFamily: MONO, fontSize: 11, color: 'var(--color-text-muted)' }}>
+          {isWeek ? '7 HARI TERAKHIR' : 'DARI TANGGAL 1'} · SKOR {total}
+        </p>
+        <p style={{ marginTop: 4, marginBottom: 16, fontFamily: MONO, fontSize: 11, color: 'var(--color-text-muted)' }}>
+          HABIT SELESAI · {periodHabitsDone}
+        </p>
+        {items.length === 0 ? (
+          <p style={{ padding: '48px 0', textAlign: 'center', fontFamily: MONO, fontSize: 11, letterSpacing: '0.15em', color: 'var(--color-text-muted)' }}>
+            BELUM ADA TUGAS DISELESAIKAN
+          </p>
+        ) : (
+          <ul>
+            {items.map((todo) => (
+              <li key={todo.id} className="list-row">
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 14, color: 'var(--color-text)' }}>{todo.title}</p>
+                  <p style={{ marginTop: 2, fontFamily: MONO, fontSize: 10, color: 'var(--color-text-muted)' }}>
+                    DICENTANG {fmtDate(todo.completedKey)} · DUE {fmtDate(todo.dueDate)}
                   </p>
                 </div>
               </li>
@@ -311,7 +440,9 @@ export function ReviewView() {
              Shape: Rounded Rect — DARK
              Typography: Geist SANS bold (berbeda!)
           ════════════════════════════════════════════ */}
-      <div
+      <button
+        type="button"
+        onClick={() => setShowBreakdown(true)}
         style={{
           gridColumn: '3 / 5',
           gridRow: '3 / 5',
@@ -324,15 +455,27 @@ export function ReviewView() {
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
+          cursor: 'pointer',
+          textAlign: 'left',
+          outline: 'none',
+          WebkitAppearance: 'none',
+          appearance: 'none',
         }}
       >
         <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>
           HARI INI
         </span>
-        <span style={{ fontFamily: PIXEL, fontWeight: 800, fontSize: Math.floor(cell * 0.8), color: '#ffffff', lineHeight: 1, letterSpacing: '-0.05em' }}>
-          {scores.today}
-        </span>
-      </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+          <span style={{ fontFamily: PIXEL, fontWeight: 800, fontSize: Math.floor(cell * 0.8), color: '#ffffff', lineHeight: 1, letterSpacing: '-0.05em' }}>
+            {scores.today}
+          </span>
+          {scores.todayBreakdown.perfect && (
+            <span style={{ fontFamily: MONO, fontSize: 8, letterSpacing: '0.16em', color: '#22c55e' }}>
+              PERFECT
+            </span>
+          )}
+        </div>
+      </button>
 
       {/* ════════════════════════════════════════════
           6. BACKLOG — col 3-4, row 5-6 (2×2)
@@ -388,7 +531,9 @@ export function ReviewView() {
           7. MINGGU — col 1-2, row 5 (2×1)
              Shape: Pill — DARK
           ════════════════════════════════════════════ */}
-      <div
+      <button
+        type="button"
+        onClick={() => setOpenPeriod('week')}
         style={{
           gridColumn: '1 / 3',
           gridRow: '5 / 6',
@@ -401,6 +546,11 @@ export function ReviewView() {
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '0 18px',
+          cursor: 'pointer',
+          textAlign: 'left',
+          outline: 'none',
+          WebkitAppearance: 'none',
+          appearance: 'none',
         }}
       >
         <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)' }}>
@@ -409,13 +559,15 @@ export function ReviewView() {
         <span style={{ fontFamily: PIXEL, fontWeight: 500, fontSize: Math.floor(cell * 0.36), color: '#ffffff', letterSpacing: '-0.02em', lineHeight: 1 }}>
           {scores.week}
         </span>
-      </div>
+      </button>
 
       {/* ════════════════════════════════════════════
           8. BULAN — col 1-2, row 6 (2×1)
              Shape: Pill — DARKER
           ════════════════════════════════════════════ */}
-      <div
+      <button
+        type="button"
+        onClick={() => setOpenPeriod('month')}
         style={{
           gridColumn: '1 / 3',
           gridRow: '6 / 7',
@@ -428,6 +580,11 @@ export function ReviewView() {
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '0 18px',
+          cursor: 'pointer',
+          textAlign: 'left',
+          outline: 'none',
+          WebkitAppearance: 'none',
+          appearance: 'none',
         }}
       >
         <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)' }}>
@@ -436,7 +593,7 @@ export function ReviewView() {
         <span style={{ fontFamily: PIXEL, fontWeight: 500, fontSize: Math.floor(cell * 0.36), color: '#ffffff', letterSpacing: '-0.02em', lineHeight: 1 }}>
           {scores.month}
         </span>
-      </div>
+      </button>
     </div>
   )
 }
