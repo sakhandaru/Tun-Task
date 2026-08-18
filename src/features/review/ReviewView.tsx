@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { addDays } from 'date-fns'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { useWeeklyStats, useScoreStats } from '../../hooks/useLiveDb'
 import { db } from '../../lib/db/schema'
 import { completeTodo } from '../../lib/db/operations'
 import { dateKey, nowInTz } from '../../lib/dates'
-import type { HabitLog, Todo } from '../../lib/db/types'
+import type { HabitLog } from '../../lib/db/types'
 
 /* ─── helpers ──────────────────────────────────────────── */
 const DAY = ['MIN', 'SEN', 'SEL', 'RAB', 'KAM', 'JUM', 'SAB']
@@ -63,54 +64,50 @@ export function ReviewView() {
   }, [])
 
   // Data
-  const [backlog, setBacklog] = useState<Todo[]>([])
-  const [allLogs, setAllLogs] = useState<HabitLog[]>([])
-  const [weekDone, setWeekDone] = useState(0)
   const [showBacklog, setShowBacklog] = useState(false)
 
-  useEffect(() => {
-    void (async () => {
-      // Backlog
-      const all = await db.todos.filter(t => !t.completedAt && !t.cancelledAt).toArray()
-      all.sort((a, b) => {
-        if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate)
-        if (a.dueDate) return -1
-        if (b.dueDate) return 1
-        return a.createdAt.localeCompare(b.createdAt)
+  // Reactive Backlog query
+  const backlog = useLiveQuery(async () => {
+    const all = await db.todos.filter(t => !t.completedAt && !t.cancelledAt).toArray()
+    all.sort((a, b) => {
+      if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate)
+      if (a.dueDate) return -1
+      if (b.dueDate) return 1
+      return a.createdAt.localeCompare(b.createdAt)
+    })
+    return all
+  }) ?? []
+
+  // Reactive Habit Logs query
+  const allLogs = useLiveQuery(() => db.habitLogs.toArray()) ?? []
+
+  // Reactive Weekly Completed Tasks query
+  const weekDone = useLiveQuery(async () => {
+    const now = nowInTz()
+    const startDate = dateKey(addDays(now, -6))
+    const endDate = dateKey(now)
+    const weekTodos = await db.todos
+      .filter(t => {
+        if (t.cancelledAt) return false
+        const hasDue = t.dueDate ? (t.dueDate >= startDate && t.dueDate <= endDate) : false
+        const hasSched = t.scheduledAt
+          ? (() => { const d = dateKey(new Date(t.scheduledAt!)); return d >= startDate && d <= endDate })()
+          : false
+        return hasDue || hasSched
       })
-      setBacklog(all)
+      .toArray()
 
-      // Habit logs
-      const logs = await db.habitLogs.toArray()
-      setAllLogs(logs)
-
-      // Weekly todo rate
-      const now = nowInTz()
-      const startDate = dateKey(addDays(now, -6))
-      const endDate = dateKey(now)
-      const weekTodos = await db.todos
-        .filter(t => {
-          if (t.cancelledAt) return false
-          const hasDue = t.dueDate ? (t.dueDate >= startDate && t.dueDate <= endDate) : false
-          const hasSched = t.scheduledAt
-            ? (() => { const d = dateKey(new Date(t.scheduledAt!)); return d >= startDate && d <= endDate })()
-            : false
-          return hasDue || hasSched
-        })
-        .toArray()
-
-      let done = 0
-      for (let i = 0; i < 7; i++) {
-        const dk = dateKey(addDays(now, -i))
-        const day = weekTodos.filter(t =>
-          t.dueDate === dk ||
-          (t.scheduledAt ? dateKey(new Date(t.scheduledAt)) === dk : false),
-        )
-        done += day.filter(t => !!t.completedAt).length
-      }
-      setWeekDone(done)
-    })()
-  }, [])
+    let done = 0
+    for (let i = 0; i < 7; i++) {
+      const dk = dateKey(addDays(now, -i))
+      const day = weekTodos.filter(t =>
+        t.dueDate === dk ||
+        (t.scheduledAt ? dateKey(new Date(t.scheduledAt)) === dk : false),
+      )
+      done += day.filter(t => !!t.completedAt).length
+    }
+    return done
+  }) ?? 0
 
   const streak = useMemo(() => calcStreak(allLogs), [allLogs])
 
@@ -157,7 +154,6 @@ export function ReviewView() {
                   type="button"
                   onClick={async () => {
                     await completeTodo(todo.id)
-                    setBacklog(p => p.filter(t => t.id !== todo.id))
                   }}
                   className="check-circle shrink-0"
                   aria-label="Selesaikan"
@@ -352,7 +348,7 @@ export function ReviewView() {
           gridColumn: '1 / 3',
           gridRow: '5 / 7',
           borderRadius: 24,
-          background: backlog.length > 0 ? '#ffffff' : '#111111',
+          backgroundColor: backlog.length > 0 ? '#ffffff' : '#111111',
           border: `1px solid ${backlog.length > 0 ? 'rgba(0,0,0,0.07)' : '#1e1e1e'}`,
           padding: '14px 16px',
           height: h2,
@@ -362,6 +358,9 @@ export function ReviewView() {
           justifyContent: 'space-between',
           cursor: 'pointer',
           textAlign: 'left',
+          outline: 'none',
+          WebkitAppearance: 'none',
+          appearance: 'none',
         }}
       >
         <span style={{
