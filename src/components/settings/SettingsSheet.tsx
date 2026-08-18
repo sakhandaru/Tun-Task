@@ -9,7 +9,7 @@ interface SettingsSheetProps {
   onClose: () => void
 }
 
-type View = 'menu' | 'routines'
+type View = 'menu' | 'routines' | 'guide_user' | 'guide_nlp'
 
 export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   const routines = useRoutines()
@@ -86,6 +86,8 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
             <h2 className="text-xl font-semibold text-[var(--color-text)]">
               {view === 'menu' && 'Menu Utama'}
               {view === 'routines' && 'Paket Rutinitas'}
+              {view === 'guide_user' && 'Panduan Penggunaan'}
+              {view === 'guide_nlp' && 'Panduan Tambah Cepat'}
             </h2>
           </div>
           <button
@@ -105,6 +107,22 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
             >
               <span className="text-sm font-medium">Kelola Paket Rutinitas</span>
               <span className="text-[10px] font-mono text-[var(--color-text-muted)]">ATUR →</span>
+            </button>
+
+            <button
+              onClick={() => setView('guide_user')}
+              className="w-full flex items-center justify-between p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] active:scale-[0.98] transition-transform"
+            >
+              <span className="text-sm font-medium">Panduan Penggunaan</span>
+              <span className="text-[10px] font-mono text-[var(--color-text-muted)]">LIHAT →</span>
+            </button>
+
+            <button
+              onClick={() => setView('guide_nlp')}
+              className="w-full flex items-center justify-between p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] active:scale-[0.98] transition-transform"
+            >
+              <span className="text-sm font-medium">Panduan Tambah Cepat (NLP)</span>
+              <span className="text-[10px] font-mono text-[var(--color-text-muted)]">LIHAT →</span>
             </button>
 
             <button
@@ -204,6 +222,89 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                     Belum ada paket.
                   </p>
                 )}
+              </div>
+            </section>
+          </div>
+        )}
+
+        {view === 'guide_user' && (
+          <div className="space-y-6">
+            <section className="space-y-4">
+              <div>
+                <h4 className="text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase mb-2">NAVIGASI SWIPE</h4>
+                <p className="text-sm text-[var(--color-text)] leading-relaxed">
+                  Geser layar ke kiri atau kanan untuk berpindah dengan cepat antara halaman:
+                </p>
+                <ul className="list-disc pl-5 mt-2 space-y-1 text-xs text-[var(--color-text-muted)] font-mono uppercase">
+                  <li>Hari ini (Tugas & Habit saat ini)</li>
+                  <li>Besok (Rencana hari esok)</li>
+                  <li>Habit (Daftar semua kebiasaan aktif)</li>
+                  <li>Review (Dashboard & Widget Nothing UI)</li>
+                </ul>
+              </div>
+
+              <div className="border-t border-[var(--color-border)] pt-4">
+                <h4 className="text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase mb-2">MENYELESAIKAN TUGAS</h4>
+                <p className="text-sm text-[var(--color-text)] leading-relaxed">
+                  Cukup ketuk lingkaran di sebelah kiri tugas atau kebiasaan untuk menandai selesai. Untuk membatalkan atau menjadwal ulang ke hari esok, gunakan tombol aksi cepat di sebelah kanan.
+                </p>
+              </div>
+
+              <div className="border-t border-[var(--color-border)] pt-4">
+                <h4 className="text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase mb-2">SISTEM SKOR & STREAK</h4>
+                <p className="text-sm text-[var(--color-text)] leading-relaxed">
+                  Poin Anda bertambah setiap kali tugas/habit diselesaikan. Selesaikan habit secara berurutan tanpa putus untuk menaikkan <span className="text-[var(--color-accent)] font-semibold">Streak Hari</span> Anda.
+                </p>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {view === 'guide_nlp' && (
+          <div className="space-y-6">
+            <section className="space-y-4">
+              <p className="text-sm text-[var(--color-text)] leading-relaxed">
+                Anda bisa menekan tombol <strong className="text-[var(--color-accent)] font-semibold">+</strong> di bawah layar, lalu ketik menggunakan bahasa natural. Sistem akan otomatis mendeteksi nama tugas, jam, tanggal, prioritas, atau menjadikannya habit.
+              </p>
+
+              <div className="border-t border-[var(--color-border)] pt-4 space-y-3">
+                <h4 className="text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase">FORMAT PENULISAN & CONTOH</h4>
+                
+                <div className="space-y-2">
+                  <span className="block text-[10px] font-mono text-[var(--color-text-muted)] uppercase">1. TUGAS + WAKTU (JAM)</span>
+                  <div className="p-3 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl">
+                    <p className="font-mono text-xs text-[var(--color-text)]">Meeting jam 14:00</p>
+                    <p className="text-[10px] text-[var(--color-text-muted)] mt-1">→ Menambah tugas dengan waktu terjadwal pukul 14:00</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="block text-[10px] font-mono text-[var(--color-text-muted)] uppercase">2. TUGAS + HARI / TANGGAL</span>
+                  <div className="p-3 bg-[var(--color-bg-secondary)] border border border-[var(--color-border)] rounded-xl">
+                    <p className="font-mono text-xs text-[var(--color-text)]">Beli kopi besok pagi</p>
+                    <p className="text-[10px] text-[var(--color-text-muted)] mt-1">→ Menjadwalkan tugas untuk esok hari</p>
+                  </div>
+                  <div className="p-3 bg-[var(--color-bg-secondary)] border border border-[var(--color-border)] rounded-xl">
+                    <p className="font-mono text-xs text-[var(--color-text)]">Potong rambut hari sabtu</p>
+                    <p className="text-[10px] text-[var(--color-text-muted)] mt-1">→ Menjadwalkan tugas untuk hari Sabtu terdekat</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="block text-[10px] font-mono text-[var(--color-text-muted)] uppercase">3. TUGAS PRIORITAS (!)</span>
+                  <div className="p-3 bg-[var(--color-bg-secondary)] border border border-[var(--color-border)] rounded-xl">
+                    <p className="font-mono text-xs text-[var(--color-text)]">Bayar kostan !</p>
+                    <p className="text-[10px] text-[var(--color-text-muted)] mt-1">→ Tanda seru (!) menandai tugas sebagai Prioritas Tinggi</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="block text-[10px] font-mono text-[var(--color-text-muted)] uppercase">4. MEMBUAT HABIT OTOMATIS</span>
+                  <div className="p-3 bg-[var(--color-bg-secondary)] border border border-[var(--color-border)] rounded-xl">
+                    <p className="font-mono text-xs text-[var(--color-text)]">Minum air putih setiap hari</p>
+                    <p className="text-[10px] text-[var(--color-text-muted)] mt-1">→ Kata "setiap hari" / "setiap pagi" otomatis membuat habit baru</p>
+                  </div>
+                </div>
               </div>
             </section>
           </div>

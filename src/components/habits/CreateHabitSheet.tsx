@@ -205,8 +205,8 @@ export function CreateHabitSheet({ open, onClose }: CreateHabitSheetProps) {
             <p style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: 12 }}>
               JADWAL
             </p>
-            {/* 4 pill options */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {/* 4 pill options in 2x2 grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
               {SCHEDULE_OPTS.map(opt => {
                 const active = scheduleKind === opt.value
                 return (
@@ -219,12 +219,13 @@ export function CreateHabitSheet({ open, onClose }: CreateHabitSheetProps) {
                       fontSize: 10,
                       letterSpacing: '0.12em',
                       textTransform: 'uppercase',
-                      padding: '8px 16px',
+                      padding: '10px 0',
                       borderRadius: 9999,
                       border: `1px solid ${active ? 'var(--color-accent)' : 'var(--color-border)'}`,
                       background: active ? 'var(--color-accent)' : 'transparent',
                       color: active ? '#fff' : 'var(--color-text-muted)',
                       cursor: 'pointer',
+                      textAlign: 'center',
                       transition: 'all 0.15s',
                     }}
                   >
