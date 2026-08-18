@@ -95,6 +95,22 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
     reader.readAsText(file)
   }
 
+  const handleResetData = async () => {
+    if (confirm('Apakah Anda yakin ingin menghapus SEMUA data (Tugas, Habit, dan Rutinitas)? Tindakan ini akan mengosongkan aplikasi dan tidak dapat dibatalkan.')) {
+      try {
+        await db.todos.clear()
+        await db.habits.clear()
+        await db.habitLogs.clear()
+        await db.routines.clear()
+        alert('Seluruh data berhasil dihapus!')
+        window.location.reload()
+      } catch (err) {
+        console.error(err)
+        alert('Gagal mengosongkan database.')
+      }
+    }
+  }
+
   if (!open) return null
 
   const handleDisconnect = () => {
@@ -242,6 +258,22 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                   />
                 </label>
               </div>
+            </div>
+
+            {/* Mulai Ulang / Reset Data */}
+            <div className="p-4 rounded-xl border border-[rgba(215,25,33,0.15)] bg-[rgba(215,25,33,0.01)] space-y-3">
+              <span className="block text-[10px] font-mono tracking-widest text-[var(--color-accent)] uppercase">PENGATURAN LANJUTAN</span>
+              <p className="text-[11px] text-[var(--color-text-muted)] leading-relaxed">
+                Hapus semua tugas, habit, dan paket rutinitas dari penyimpanan lokal browser untuk memulai dari awal.
+              </p>
+              <button
+                type="button"
+                onClick={handleResetData}
+                style={{ fontFamily: 'Geist Mono Variable, ui-monospace, monospace', fontSize: 9, letterSpacing: '0.12em', padding: '10px 12px', borderRadius: '9999px', background: 'var(--color-accent)', color: '#ffffff', border: 'none' }}
+                className="w-full hover:opacity-90 active:scale-95 transition-all text-center uppercase font-semibold cursor-pointer"
+              >
+                HAPUS SEMUA DATA & RESET
+              </button>
             </div>
           </div>
         )}
