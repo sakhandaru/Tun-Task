@@ -4,7 +4,7 @@ import type { ParsedHabit, ParsedTodo } from '../nlp/types'
 import { db } from './schema'
 import type { Habit, HabitLog, Routine, Todo, Weekday } from './types'
 import { syncTodoToCalendar } from '../gcal'
-import { scheduleSync } from '../sync/syncManager'
+const scheduleSync = () => {}
 
 export async function createTodoFromParsed(parsed: ParsedTodo): Promise<Todo> {
   const todo: Todo = {

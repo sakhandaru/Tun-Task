@@ -8,7 +8,6 @@ import { TomorrowView } from './features/tomorrow/TomorrowView'
 import { seedDefaultsIfEmpty } from './lib/db/schema'
 import { initGoogleAuth } from './lib/gcal'
 import type { Habit } from './lib/db/types'
-import { SyncIndicator } from './components/SyncIndicator'
 
 // Lazy loaded components for better performance
 const FabPlus = lazy(() => import('./components/FabPlus').then(m => ({ default: m.FabPlus })))
@@ -56,7 +55,6 @@ function AppContent() {
 
   return (
     <>
-      <SyncIndicator />
       <SwipePages
         labels={['Hari ini', 'Besok', 'Habit', 'Review']}
         pages={[

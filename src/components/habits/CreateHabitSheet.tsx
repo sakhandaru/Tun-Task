@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { db } from '../../lib/db/schema'
-import { scheduleSync } from '../../lib/sync/syncManager'
+const scheduleSync = () => {}
 import { useRefresh } from '../../context/RefreshContext'
 import type { Weekday, HabitSchedule } from '../../lib/db/types'
 

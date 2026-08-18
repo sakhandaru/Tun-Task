@@ -4,7 +4,7 @@ import { useHabitLogs } from '../../hooks/useHabitHistory'
 import { todayKey } from '../../lib/dates'
 import { db } from '../../lib/db/schema'
 import { skipHabit, toggleHabitDone } from '../../lib/db/operations'
-import { scheduleSync } from '../../lib/sync/syncManager'
+const scheduleSync = () => {}
 import type { Habit } from '../../lib/db/types'
 import {
   buildContributionGrid,
