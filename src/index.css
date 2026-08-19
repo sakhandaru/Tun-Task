@@ -100,12 +100,22 @@
   }
 
   .check-circle {
+    position: relative;
     width: 1.25rem;
     height: 1.25rem;
     border-radius: 9999px;
     border: 1.5px solid var(--color-text-muted);
     flex-shrink: 0;
     transition: border-color 0.15s, background 0.15s;
+  }
+
+  .check-circle::after {
+    content: '';
+    position: absolute;
+    top: -20px;
+    left: -20px;
+    right: -20px;
+    bottom: -20px;
   }
 
   .check-circle--done {

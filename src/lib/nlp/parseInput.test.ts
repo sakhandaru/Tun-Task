@@ -48,4 +48,18 @@ describe('parseInput', () => {
   it('returns null for empty', () => {
     expect(parseInput('').item).toBeNull()
   })
+
+  it('parses fixed far away dates with explicit month names', () => {
+    const r = parseInput('pangkas rambut 25 oktober')
+    expect(r.item?.type).toBe('todo')
+    if (r.item?.type === 'todo') {
+      expect(r.item.dueDate).toContain('-10-25')
+    }
+
+    const r2 = parseInput('potong rambut 10 jan 2027')
+    expect(r2.item?.type).toBe('todo')
+    if (r2.item?.type === 'todo') {
+      expect(r2.item.dueDate).toBe('2027-01-10')
+    }
+  })
 })

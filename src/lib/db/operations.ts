@@ -1,5 +1,6 @@
 import { addDays } from 'date-fns'
-import { dateKey, nowInTz, todayKey } from '../dates'
+import { toZonedTime } from 'date-fns-tz'
+import { dateKey, nowInTz, todayKey, TZ } from '../dates'
 import type { ParsedHabit, ParsedTodo } from '../nlp/types'
 import { db } from './schema'
 import type { Habit, HabitLog, Routine, Todo, Weekday } from './types'
@@ -65,23 +66,25 @@ export async function deleteTodo(id: string): Promise<void> {
 export function isHabitDueToday(habit: Habit, date: Date): boolean {
   if (habit.archivedAt) return false
 
+  const zoned = toZonedTime(date, TZ)
+
   if (habit.schedule.kind === 'daily') {
     return true
   }
 
   if (habit.schedule.kind === 'weekdays') {
-    const day = date.getDay() as Weekday
+    const day = zoned.getDay() as Weekday
     return habit.schedule.days.includes(day)
   }
 
   if (habit.schedule.kind === 'monthly') {
-    return date.getDate() === habit.schedule.dayOfMonth
+    return zoned.getDate() === habit.schedule.dayOfMonth
   }
 
   if (habit.schedule.kind === 'interval') {
-    const createdDate = new Date(habit.createdAt)
-    const d1 = new Date(createdDate.getFullYear(), createdDate.getMonth(), createdDate.getDate())
-    const d2 = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    const createdZoned = toZonedTime(new Date(habit.createdAt), TZ)
+    const d1 = new Date(createdZoned.getFullYear(), createdZoned.getMonth(), createdZoned.getDate())
+    const d2 = new Date(zoned.getFullYear(), zoned.getMonth(), zoned.getDate())
     const diffTime = d2.getTime() - d1.getTime()
     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24))
     if (diffDays < 0) return false

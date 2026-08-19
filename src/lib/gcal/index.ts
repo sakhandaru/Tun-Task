@@ -5,6 +5,7 @@ declare global {
 }
 
 import type { Todo } from '../db/types'
+import { TZ } from '../dates'
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_CLIENT_ID_HERE'
 const SCOPES = 'https://www.googleapis.com/auth/calendar.events'
@@ -87,11 +88,11 @@ export async function syncTodoToCalendar(todo: Todo) {
     description: 'Sent from TunTask',
     start: {
       dateTime: startTime.toISOString(),
-      timeZone: 'Asia/Jakarta',
+      timeZone: TZ,
     },
     end: {
       dateTime: endTime.toISOString(),
-      timeZone: 'Asia/Jakarta',
+      timeZone: TZ,
     },
   }
 

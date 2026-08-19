@@ -9,8 +9,7 @@ import {
   subWeeks,
 } from 'date-fns'
 import { id } from 'date-fns/locale'
-import { toZonedTime } from 'date-fns-tz'
-import { TZ, dateKey, parseDateKey, todayKey } from '../dates'
+import { dateKey, parseDateKey, todayKey } from '../dates'
 import { isHabitDueToday } from '../db/operations'
 import type { Habit, HabitLog, HabitLogStatus } from '../db/types'
 
@@ -38,8 +37,7 @@ export interface MonthlyStrike {
 export function isHabitScheduledOnDate(habit: Habit, dateStr: string): boolean {
   if (habit.archivedAt) return false
   const d = parseDateKey(dateStr)
-  const zoned = toZonedTime(d, TZ)
-  return isHabitDueToday(habit, zoned)
+  return isHabitDueToday(habit, d)
 }
 
 function resolveStatus(

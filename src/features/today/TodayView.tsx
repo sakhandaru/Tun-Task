@@ -125,32 +125,26 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
     })
   }
 
+  const handleGCalClick = () => {
+    if (gcalStatus === 'connected' || gcalStatus === 'expired') {
+      localStorage.removeItem('gcal_token')
+      localStorage.removeItem('gcal_token_expiry')
+      window.dispatchEvent(new Event('gcal_auth_changed'))
+    } else {
+      void reconnectGCal()
+    }
+  }
+
   const handleRefreshClick = async () => {
-    let shouldReload = true
-    if (gcalStatus !== 'connected') {
-      const status = getGCalStatus()
-      if (status === 'expired') {
-        const token = await ensureAuth()
-        if (!token) {
-          shouldReload = false
-          await reconnectGCal()
-        }
-      } else {
-        shouldReload = false
-        await reconnectGCal()
+    if ('serviceWorker' in navigator) {
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations()
+        for (const r of registrations) await r.unregister()
+      } catch (err) {
+        console.error(err)
       }
     }
-    if (shouldReload) {
-      if ('serviceWorker' in navigator) {
-        try {
-          const registrations = await navigator.serviceWorker.getRegistrations()
-          for (const r of registrations) await r.unregister()
-        } catch (err) {
-          console.error(err)
-        }
-      }
-      window.location.reload()
-    }
+    window.location.reload()
   }
 
   // Progress counts
@@ -197,7 +191,7 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
           {/* GCal dot */}
           <button
             type="button"
-            onClick={() => void reconnectGCal()}
+            onClick={handleGCalClick}
             className="flex items-center justify-center p-2.5 relative transition-transform duration-200 active:scale-90"
             title={`Google Calendar: ${gcalStatus === 'connected' ? 'Tersambung' : gcalStatus === 'expired' ? 'Sesi Habis' : 'Terputus'}. Klik untuk hubungkan ulang.`}
             aria-label="Google Calendar Status"
@@ -330,7 +324,17 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
                   className={`check-circle shrink-0 ${todo.completedAt ? 'check-circle--done' : ''}`}
                   aria-label={todo.completedAt ? 'Batalkan' : 'Selesai'}
                 />
-                <div className="min-w-0 flex-1">
+                <div
+                  onClick={() => {
+                    if (todo.completedAt) {
+                      void uncompleteTodo(todo.id)
+                    } else {
+                      void completeTodo(todo.id)
+                      flash('+10', 'plus')
+                    }
+                  }}
+                  className="min-w-0 flex-1 cursor-pointer"
+                >
                   <p className={`leading-snug ${todo.priority ? 'font-semibold' : ''} ${
                     todo.completedAt ? 'line-through text-[var(--color-text-muted)]' : ''
                   }`} style={{ fontSize: 15 }}>
@@ -449,10 +453,12 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
                     className={`check-circle shrink-0 ${done ? 'check-circle--done' : ''}`}
                     aria-label={done ? 'Batalkan' : 'Selesai'}
                   />
-                  <button
-                    type="button"
-                    onClick={() => onSelectHabit(habit)}
-                    className="min-w-0 flex-1 text-left"
+                  <div
+                    onClick={() => {
+                      void toggleHabitDone(habit.id, today)
+                      if (!done) flash('+10', 'plus')
+                    }}
+                    className="min-w-0 flex-1 cursor-pointer text-left"
                   >
                     <p className={`text-[15px] ${done ? 'text-[var(--color-text-muted)] line-through' : ''}`}>
                       {habit.title}
@@ -460,7 +466,7 @@ export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
                     <div className="mt-2">
                       <HabitMiniHeatmap days={miniDays} />
                     </div>
-                  </button>
+                  </div>
                   {!done && log?.status !== 'skipped' && (
                     <button
                       type="button"

@@ -72,7 +72,15 @@ export function TomorrowView({ onSelectHabit }: TomorrowViewProps) {
                   }`}
                   aria-label={todo.completedAt ? 'Batalkan' : 'Selesai'}
                 />
-                <div className="min-w-0 flex-1">
+                <div
+                  onClick={() =>
+                    void (todo.completedAt
+                      ? uncompleteTodo(todo.id)
+                      : completeTodo(todo.id)
+                    )
+                  }
+                  className="min-w-0 flex-1 cursor-pointer"
+                >
                   <p
                     className={`text-[15px] leading-snug ${
                       todo.priority ? 'font-semibold' : ''

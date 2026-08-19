@@ -1,7 +1,7 @@
 import { addDays, format } from 'date-fns'
 import { toZonedTime, fromZonedTime } from 'date-fns-tz'
 
-export const TZ = 'Asia/Jakarta'
+export const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Jakarta'
 
 export function nowInTz(): Date {
   return toZonedTime(new Date(), TZ)

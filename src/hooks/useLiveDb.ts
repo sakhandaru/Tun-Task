@@ -1,8 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { addDays } from 'date-fns'
+import { toZonedTime, fromZonedTime } from 'date-fns-tz'
 import { db } from '../lib/db/schema'
 import { isHabitDueToday } from '../lib/db/operations'
-import { dateKey, nowInTz, todayKey, parseDateKey, addDaysInTz } from '../lib/dates'
+import { dateKey, todayKey, parseDateKey, TZ } from '../lib/dates'
 import type { Todo } from '../lib/db/types'
 
 export function useTodayTodos() {
@@ -14,12 +15,12 @@ export function useTodayTodos() {
       .filter((t) => !t.completedAt && !t.cancelledAt)
       .toArray()
     
-    // Completed today (full Jakarta day: from 00:00 WIB to 00:00 WIB next day)
+    // Completed today (full day in TZ)
     const completedToday = await db.todos
       .where('completedAt')
       .between(
         parseDateKey(today).toISOString(),
-        parseDateKey(dateKey(addDaysInTz(nowInTz(), 1))).toISOString(),
+        parseDateKey(dateKey(addDays(new Date(), 1))).toISOString(),
         true,
         false,
       )
@@ -54,7 +55,7 @@ export function useTodayTodos() {
 
 export function useTodayHabits() {
   const result = useLiveQuery(async () => {
-    const todayDate = nowInTz()
+    const todayDate = new Date()
     const all = await db.habits.filter((h) => !h.archivedAt).toArray()
     const due = all.filter((h) => isHabitDueToday(h, todayDate))
     const today = todayKey()
@@ -78,7 +79,7 @@ export function useRoutines() {
 
 export function useWeeklyStats() {
   const result = useLiveQuery(async () => {
-    const now = nowInTz()
+    const now = new Date()
     const weekAgo = addDays(now, -6)
     const cutoff = dateKey(weekAgo)
     const recent = await db.habitLogs.where('date').aboveOrEqual(cutoff).toArray()
@@ -93,7 +94,7 @@ export function useWeeklyStats() {
 
 export function useTomorrowTodos() {
   return useLiveQuery(async () => {
-    const tomorrow = dateKey(addDays(nowInTz(), 1))
+    const tomorrow = dateKey(addDays(new Date(), 1))
     
     // Todos due tomorrow
     const dueTomorrow = await db.todos
@@ -101,12 +102,12 @@ export function useTomorrowTodos() {
       .equals(tomorrow)
       .toArray()
       
-    // Completed tomorrow (full Jakarta day)
+    // Completed tomorrow (full day in TZ)
     const completedTomorrow = await db.todos
       .where('completedAt')
       .between(
         parseDateKey(tomorrow).toISOString(),
-        parseDateKey(dateKey(addDaysInTz(nowInTz(), 2))).toISOString(),
+        parseDateKey(dateKey(addDays(new Date(), 2))).toISOString(),
         true,
         false,
       )
@@ -131,7 +132,7 @@ export function useTomorrowTodos() {
 
 export function useTomorrowHabits() {
   return useLiveQuery(async () => {
-    const tomorrowDate = addDays(nowInTz(), 1)
+    const tomorrowDate = addDays(new Date(), 1)
     const all = await db.habits.filter((h) => !h.archivedAt).toArray()
     const due = all.filter((h) => isHabitDueToday(h, tomorrowDate))
     return due
@@ -190,10 +191,15 @@ export function useCompletedTodosInRange(
 
 export function useScoreStats() {
   const result = useLiveQuery(async () => {
-    const now = nowInTz()
-    const dayOfMonth = now.getDate()
-    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const weekAgo = addDays(now, -7)
+    const rawNow = new Date()
+    const zonedNow = toZonedTime(rawNow, TZ)
+    
+    const dayOfMonth = zonedNow.getDate()
+    const year = zonedNow.getFullYear()
+    const month = zonedNow.getMonth()
+    
+    const startOfCurrentMonth = fromZonedTime(new Date(year, month, 1, 0, 0, 0), TZ)
+    const weekAgo = addDays(rawNow, -7)
 
     const minDate = dateKey(weekAgo < startOfCurrentMonth ? weekAgo : startOfCurrentMonth)
 
@@ -254,7 +260,7 @@ export function useScoreStats() {
       !t.cancelledAt &&
       (!t.dueDate || t.dueDate === todayK || (t.scheduledAt && dateKey(new Date(t.scheduledAt)) === todayK)),
     )
-    const dueHabitIds = new Set(habits.filter((h) => isHabitDueToday(h, now)).map((h) => h.id))
+    const dueHabitIds = new Set(habits.filter((h) => isHabitDueToday(h, rawNow)).map((h) => h.id))
     const hasAnyDue = dueTodosToday.length > 0 || dueHabitIds.size > 0
     const todosPerfect = dueTodosToday.every((t) => !!t.completedAt)
     const habitsPerfect = [...dueHabitIds].every((id) =>
@@ -266,14 +272,15 @@ export function useScoreStats() {
     // Week (last 7 days)
     let weekTotal = 0
     for (let i = 0; i < 7; i++) {
-      weekTotal += dayScore(dayStats(dateKey(addDays(now, -i))), false)
+      weekTotal += dayScore(dayStats(dateKey(addDays(rawNow, -i))), false)
     }
 
     // Month (day 1 to today)
     let monthTotal = 0
+    const pad = (n: number) => String(n).padStart(2, '0')
     for (let i = 0; i < dayOfMonth; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth(), i + 1)
-      monthTotal += dayScore(dayStats(dateKey(d)), false)
+      const dateK = `${year}-${pad(month + 1)}-${pad(i + 1)}`
+      monthTotal += dayScore(dayStats(dateK), false)
     }
 
     return {

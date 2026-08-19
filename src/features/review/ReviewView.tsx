@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { addDays } from 'date-fns'
+import { toZonedTime } from 'date-fns-tz'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useWeeklyStats, useScoreStats, useCompletedTodosInRange } from '../../hooks/useLiveDb'
 import { db } from '../../lib/db/schema'
 import { completeTodo } from '../../lib/db/operations'
-import { dateKey, nowInTz } from '../../lib/dates'
+import { dateKey, TZ } from '../../lib/dates'
 import type { HabitLog } from '../../lib/db/types'
 
 /* ─── helpers ──────────────────────────────────────────── */
@@ -85,7 +86,7 @@ export function ReviewView() {
 
   // Reactive Weekly Completed Tasks query
   const weekDone = useLiveQuery(async () => {
-    const now = nowInTz()
+    const now = new Date()
     const startDate = dateKey(addDays(now, -6))
     const endDate = dateKey(now)
     const weekTodos = await db.todos
@@ -114,17 +115,20 @@ export function ReviewView() {
   const streak = useMemo(() => calcStreak(allLogs), [allLogs])
 
   // Completed todos per period (for MINGGU / BULAN drill-down)
-  const rangeNow = nowInTz()
-  const weekStart = dateKey(addDays(rangeNow, -6))
-  const monthStart = dateKey(new Date(rangeNow.getFullYear(), rangeNow.getMonth(), 1))
-  const todayK = dateKey(rangeNow)
+  const rawRangeNow = new Date()
+  const zonedRangeNow = toZonedTime(rawRangeNow, TZ)
+  const weekStart = dateKey(addDays(rawRangeNow, -6))
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const monthStart = `${zonedRangeNow.getFullYear()}-${pad(zonedRangeNow.getMonth() + 1)}-01`
+  const todayK = dateKey(rawRangeNow)
   const weekCompleted = useCompletedTodosInRange(weekStart, todayK)
   const monthCompleted = useCompletedTodosInRange(monthStart, todayK)
 
   // Time strings
-  const hh = p2(clock.getHours())
-  const mm = p2(clock.getMinutes())
-  const dateStr = `${DAY[clock.getDay()]}, ${clock.getDate()} ${MON[clock.getMonth()]}`
+  const zonedClock = toZonedTime(clock, TZ)
+  const hh = p2(zonedClock.getHours())
+  const mm = p2(zonedClock.getMinutes())
+  const dateStr = `${DAY[zonedClock.getDay()]}, ${zonedClock.getDate()} ${MON[zonedClock.getMonth()]}`
 
   // Derived sizes
   // 1-cell height = cell px

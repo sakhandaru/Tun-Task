@@ -97,16 +97,74 @@ function extractFixedDate(text: string): { date?: Date; cleaned: string } {
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
 
-  const match = text.match(DATE_PATTERN)
+  const monthNames = 'januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|jan|feb|mar|apr|jun|jul|agt|aug|sep|okt|oct|nov|des|dec|january|february|march|june|july|august|october|december'
+  const dayMonthPattern = new RegExp(`\\b(\\d{1,2})\\s+(${monthNames})(?:\\s+(\\d{4}))?\\b`, 'i')
+  const monthDayPattern = new RegExp(`\\b(${monthNames})\\s+(\\d{1,2})(?:\\s+(\\d{4}))?\\b`, 'i')
+
+  const MONTH_MAP: Record<string, number> = {
+    januari: 0, jan: 0, january: 0,
+    februari: 1, feb: 1, february: 1,
+    maret: 2, mar: 2, march: 2,
+    april: 3, apr: 3,
+    mei: 4, may: 4,
+    juni: 5, jun: 5, june: 5,
+    juli: 6, jul: 6, july: 6,
+    agustus: 7, agt: 7, aug: 7, august: 7,
+    september: 8, sep: 8,
+    oktober: 9, okt: 9, oct: 9, october: 9,
+    november: 10, nov: 10,
+    desember: 11, des: 11, dec: 11, december: 11,
+  }
+
+  let match = text.match(dayMonthPattern)
   if (match) {
     const targetDay = parseInt(match[1], 10)
+    const monthName = match[2].toLowerCase()
+    const targetMonth = MONTH_MAP[monthName]
+    const targetYear = match[3] ? parseInt(match[3], 10) : currentYear
+
+    if (targetDay >= 1 && targetDay <= 31 && targetMonth !== undefined) {
+      date = new Date(targetYear, targetMonth, targetDay)
+      if (!match[3]) {
+        const temp = new Date(currentYear, targetMonth, targetDay)
+        if (temp < now) {
+          date.setFullYear(currentYear + 1)
+        }
+      }
+      cleaned = cleaned.replace(match[0], ' ')
+      return { date, cleaned: cleaned.replace(/\s+/g, ' ').trim() }
+    }
+  }
+
+  match = text.match(monthDayPattern)
+  if (match) {
+    const monthName = match[1].toLowerCase()
+    const targetMonth = MONTH_MAP[monthName]
+    const targetDay = parseInt(match[2], 10)
+    const targetYear = match[3] ? parseInt(match[3], 10) : currentYear
+
+    if (targetDay >= 1 && targetDay <= 31 && targetMonth !== undefined) {
+      date = new Date(targetYear, targetMonth, targetDay)
+      if (!match[3]) {
+        const temp = new Date(currentYear, targetMonth, targetDay)
+        if (temp < now) {
+          date.setFullYear(currentYear + 1)
+        }
+      }
+      cleaned = cleaned.replace(match[0], ' ')
+      return { date, cleaned: cleaned.replace(/\s+/g, ' ').trim() }
+    }
+  }
+
+  const dateMatch = text.match(DATE_PATTERN)
+  if (dateMatch) {
+    const targetDay = parseInt(dateMatch[1], 10)
     if (targetDay >= 1 && targetDay <= 31) {
       date = new Date(currentYear, currentMonth, targetDay)
-      // If the date has already passed this month, move to next month
       if (targetDay < currentDay) {
         date.setMonth(currentMonth + 1)
       }
-      cleaned = cleaned.replace(match[0], ' ')
+      cleaned = cleaned.replace(dateMatch[0], ' ')
     }
   }
 
