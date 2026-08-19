@@ -1,10 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { addDays } from 'date-fns'
-import { toZonedTime, fromZonedTime } from 'date-fns-tz'
+import { toZonedTime } from 'date-fns-tz'
 import { db } from '../lib/db/schema'
 import { isHabitDueToday } from '../lib/db/operations'
 import { dateKey, todayKey, parseDateKey, TZ } from '../lib/dates'
-import type { Todo } from '../lib/db/types'
+import type { Todo, Habit, HabitLog } from '../lib/db/types'
 
 export function useTodayTodos() {
   return useLiveQuery(async () => {
@@ -156,140 +156,226 @@ export function useAllTodos() {
 }
 
 export interface ScoreBreakdown {
+  habitDue: number
   habitDone: number
-  todoOnTime: number
-  todoLate: number
+  todoDue: number
+  todoDone: number
+  target: number
+  beres: number
+  percent: number
   perfect: boolean
   skipped: number
   cancelled: number
 }
 
 const EMPTY_BREAKDOWN: ScoreBreakdown = {
+  habitDue: 0,
   habitDone: 0,
-  todoOnTime: 0,
-  todoLate: 0,
+  todoDue: 0,
+  todoDone: 0,
+  target: 0,
+  beres: 0,
+  percent: 0,
   perfect: false,
   skipped: 0,
   cancelled: 0,
 }
 
-export function useCompletedTodosInRange(
-  from: string,
-  to: string,
-): (Todo & { completedKey: string })[] {
-  return (
-    useLiveQuery(async () => {
-      const all = await db.todos.toArray()
-      return all
-        .filter((t) => !!t.completedAt && !t.cancelledAt)
-        .map((t) => ({ ...t, completedKey: dateKey(new Date(t.completedAt!)) }))
-        .filter((t) => t.completedKey >= from && t.completedKey <= to)
-        .sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''))
-    }) ?? []
-  )
+export interface ScoreHistoryItem {
+  date: string
+  habitDue: number
+  habitDone: number
+  todoDue: number
+  todoDone: number
+  skipped: number
+  cancelled: number
+  target: number
+  beres: number
+  percent: number
 }
 
-export function useScoreStats() {
+export interface ScoreStats {
+  today: number
+  week: number
+  month: number
+  streak: number
+  todayBreakdown: ScoreBreakdown
+  history: ScoreHistoryItem[]
+}
+
+const EMPTY_STATS: ScoreStats = {
+  today: 0,
+  week: 0,
+  month: 0,
+  streak: 0,
+  todayBreakdown: EMPTY_BREAKDOWN,
+  history: [],
+}
+
+function getStatsForDate(todos: Todo[], logs: HabitLog[], habits: Habit[], dateK: string) {
+  const dayLogs = logs.filter((l) => l.date === dateK)
+  const habitDone = dayLogs.filter((l) => l.status === 'done').length
+  const skipped = dayLogs.filter((l) => l.status === 'skipped').length
+  
+  const habitDue = habits.filter((h) => {
+    const isArchived = h.archivedAt && dateKey(new Date(h.archivedAt)) <= dateK
+    if (isArchived) return false
+    return isHabitDueToday(h, parseDateKey(dateK))
+  }).length
+
+  const todoDue = todos.filter((t) => {
+    const isCancelled = t.cancelledAt && dateKey(new Date(t.cancelledAt)) <= dateK
+    if (isCancelled) return false
+    return t.dueDate === dateK || (!t.dueDate && t.scheduledAt && dateKey(new Date(t.scheduledAt)) === dateK)
+  }).length
+
+  const todoDone = todos.filter((t) => {
+    const isCancelled = t.cancelledAt && dateKey(new Date(t.cancelledAt)) <= dateK
+    if (isCancelled) return false
+    const isDue = t.dueDate === dateK || (!t.dueDate && t.scheduledAt && dateKey(new Date(t.scheduledAt)) === dateK)
+    if (!isDue) return false
+    return t.completedAt !== undefined && dateKey(new Date(t.completedAt)) <= dateK
+  }).length
+
+  const cancelled = todos.filter((t) => {
+    const isDue = t.dueDate === dateK || (!t.dueDate && t.scheduledAt && dateKey(new Date(t.scheduledAt)) === dateK)
+    if (!isDue) return false
+    return t.cancelledAt !== undefined && dateKey(new Date(t.cancelledAt)) === dateK
+  }).length
+
+  const target = habitDue + todoDue
+  const beres = habitDone + todoDone
+  const percent = target === 0 ? 0 : Math.round((beres / target) * 100)
+
+  return {
+    habitDue,
+    habitDone,
+    todoDue,
+    todoDone,
+    skipped,
+    cancelled,
+    target,
+    beres,
+    percent,
+  }
+}
+
+function calcPerfectStreak(todos: Todo[], logs: HabitLog[], habits: Habit[], todayK: string): number {
+  let streak = 0
+  let currentDate = parseDateKey(todayK)
+  let isToday = true
+  
+  for (let i = 0; i < 365; i++) {
+    const dateStr = dateKey(currentDate)
+    const stats = getStatsForDate(todos, logs, habits, dateStr)
+    
+    if (stats.target > 0) {
+      if (stats.percent === 100) {
+        streak++
+      } else {
+        if (isToday) {
+          // Today not perfect yet, doesn't break streak
+        } else {
+          break
+        }
+      }
+      isToday = false
+    }
+    
+    currentDate = addDays(currentDate, -1)
+  }
+  
+  return streak
+}
+
+export function useScoreStats(): ScoreStats {
   const result = useLiveQuery(async () => {
     const rawNow = new Date()
-    const zonedNow = toZonedTime(rawNow, TZ)
+    const todayK = todayKey(rawNow)
+
+    const logs = await db.habitLogs.toArray()
+    const habits = await db.habits.toArray()
+    const todos = await db.todos.toArray()
+
+    const todayBreakdownRaw = getStatsForDate(todos, logs, habits, todayK)
     
+    // Check if perfect
+    const zonedNow = toZonedTime(rawNow, TZ)
+    const dueHabitIds = new Set(
+      habits
+        .filter((h) => (!h.archivedAt || dateKey(new Date(h.archivedAt)) > todayK) && isHabitDueToday(h, rawNow))
+        .map((h) => h.id)
+    )
+    const dueTodosTodayCount = todos.filter((t) =>
+      (!t.cancelledAt || dateKey(new Date(t.cancelledAt)) > todayK) &&
+      (t.dueDate === todayK || (!t.dueDate && t.scheduledAt && dateKey(new Date(t.scheduledAt)) === todayK))
+    ).length
+    const hasAnyDue = dueTodosTodayCount > 0 || dueHabitIds.size > 0
+    const todosPerfect = todos.filter((t) =>
+      (!t.cancelledAt || dateKey(new Date(t.cancelledAt)) > todayK) &&
+      (t.dueDate === todayK || (!t.dueDate && t.scheduledAt && dateKey(new Date(t.scheduledAt)) === todayK))
+    ).every((t) => t.completedAt !== undefined && dateKey(new Date(t.completedAt)) <= todayK)
+    
+    const habitsPerfect = [...dueHabitIds].every((id) =>
+      logs.some((l) => l.date === todayK && l.habitId === id && l.status === 'done')
+    )
+    const perfect = hasAnyDue && todosPerfect && habitsPerfect
+
+    const todayBreakdown: ScoreBreakdown = {
+      ...todayBreakdownRaw,
+      perfect,
+    }
+
+    // Week (last 7 days)
+    let totalBeresWeek = 0
+    let totalTargetWeek = 0
+    for (let i = 0; i < 7; i++) {
+      const dStr = dateKey(addDays(rawNow, -i))
+      const stats = getStatsForDate(todos, logs, habits, dStr)
+      totalBeresWeek += stats.beres
+      totalTargetWeek += stats.target
+    }
+    const weekScore = totalTargetWeek === 0 ? 0 : Math.round((totalBeresWeek / totalTargetWeek) * 100)
+
+    // Month (day 1 to today)
+    let totalBeresMonth = 0
+    let totalTargetMonth = 0
     const dayOfMonth = zonedNow.getDate()
     const year = zonedNow.getFullYear()
     const month = zonedNow.getMonth()
-    
-    const startOfCurrentMonth = fromZonedTime(new Date(year, month, 1, 0, 0, 0), TZ)
-    const weekAgo = addDays(rawNow, -7)
-
-    const minDate = dateKey(weekAgo < startOfCurrentMonth ? weekAgo : startOfCurrentMonth)
-
-    const logs = await db.habitLogs.where('date').aboveOrEqual(minDate).toArray()
-    const habits = await db.habits.filter((h) => !h.archivedAt).toArray()
-
-    const todos = await db.todos
-      .filter((t) => (
-        (t.dueDate && t.dueDate >= minDate) ||
-        (t.completedAt && t.completedAt >= minDate) ||
-        (t.cancelledAt && t.cancelledAt >= minDate) ||
-        (!t.completedAt && !t.cancelledAt)
-      ))
-      .toArray()
-
-    const todayK = todayKey()
-
-    const dayStats = (
-      dateK: string,
-    ): Pick<ScoreBreakdown, 'habitDone' | 'todoOnTime' | 'todoLate' | 'skipped' | 'cancelled'> => {
-      const dayLogs = logs.filter((l) => l.date === dateK)
-      const completedOnDay = todos.filter(
-        (t) => !!t.completedAt && !t.cancelledAt && dateKey(new Date(t.completedAt)) === dateK,
-      )
-      const habitDone = dayLogs.filter((l) => l.status === 'done').length
-      const skipped = dayLogs.filter((l) => l.status === 'skipped').length
-      const todoOnTime = completedOnDay.filter((t) => {
-        const deadline = t.dueDate ?? (t.scheduledAt ? dateKey(new Date(t.scheduledAt)) : undefined)
-        return deadline !== undefined && deadline >= dateK
-      }).length
-
-      return {
-        habitDone,
-        skipped,
-        todoOnTime,
-        todoLate: completedOnDay.length - todoOnTime,
-        cancelled: todos.filter((t) => !!t.cancelledAt && dateKey(new Date(t.cancelledAt)) === dateK).length,
-      }
-    }
-
-    const dayScore = (
-      s: Pick<ScoreBreakdown, 'habitDone' | 'todoOnTime' | 'todoLate' | 'skipped' | 'cancelled'>,
-      perfect: boolean,
-    ): number => {
-      const raw =
-        s.habitDone * 10 +
-        s.todoOnTime * 10 +
-        s.todoLate * 5 -
-        s.skipped * 5 -
-        s.cancelled * 5 +
-        (perfect ? 20 : 0)
-      return Math.max(0, raw)
-    }
-
-    // Today
-    const todayStats = dayStats(todayK)
-    const dueTodosToday = todos.filter((t) =>
-      !t.cancelledAt &&
-      (!t.dueDate || t.dueDate === todayK || (t.scheduledAt && dateKey(new Date(t.scheduledAt)) === todayK)),
-    )
-    const dueHabitIds = new Set(habits.filter((h) => isHabitDueToday(h, rawNow)).map((h) => h.id))
-    const hasAnyDue = dueTodosToday.length > 0 || dueHabitIds.size > 0
-    const todosPerfect = dueTodosToday.every((t) => !!t.completedAt)
-    const habitsPerfect = [...dueHabitIds].every((id) =>
-      logs.some((l) => l.date === todayK && l.habitId === id && l.status === 'done'),
-    )
-    const perfect = hasAnyDue && todosPerfect && habitsPerfect
-    const todayScore = dayScore(todayStats, perfect)
-
-    // Week (last 7 days)
-    let weekTotal = 0
-    for (let i = 0; i < 7; i++) {
-      weekTotal += dayScore(dayStats(dateKey(addDays(rawNow, -i))), false)
-    }
-
-    // Month (day 1 to today)
-    let monthTotal = 0
     const pad = (n: number) => String(n).padStart(2, '0')
     for (let i = 0; i < dayOfMonth; i++) {
-      const dateK = `${year}-${pad(month + 1)}-${pad(i + 1)}`
-      monthTotal += dayScore(dayStats(dateK), false)
+      const dStr = `${year}-${pad(month + 1)}-${pad(i + 1)}`
+      const stats = getStatsForDate(todos, logs, habits, dStr)
+      totalBeresMonth += stats.beres
+      totalTargetMonth += stats.target
+    }
+    const monthScore = totalTargetMonth === 0 ? 0 : Math.round((totalBeresMonth / totalTargetMonth) * 100)
+
+    // Streak
+    const streak = calcPerfectStreak(todos, logs, habits, todayK)
+
+    // History (last 35 days)
+    const history: ScoreHistoryItem[] = []
+    for (let i = 0; i < 35; i++) {
+      const d = addDays(rawNow, -i)
+      const dStr = dateKey(d)
+      const stats = getStatsForDate(todos, logs, habits, dStr)
+      history.push({
+        date: dStr,
+        ...stats,
+      })
     }
 
     return {
-      today: todayScore,
-      week: weekTotal,
-      month: monthTotal,
-      todayBreakdown: { ...todayStats, perfect } satisfies ScoreBreakdown,
+      today: todayBreakdown.percent,
+      week: weekScore,
+      month: monthScore,
+      streak,
+      todayBreakdown,
+      history,
     }
   })
 
-  return result ?? { today: 0, week: 0, month: 0, todayBreakdown: EMPTY_BREAKDOWN }
+  return result ?? EMPTY_STATS
 }

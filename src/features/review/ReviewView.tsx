@@ -1,12 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { addDays } from 'date-fns'
 import { toZonedTime } from 'date-fns-tz'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useWeeklyStats, useScoreStats, useCompletedTodosInRange } from '../../hooks/useLiveDb'
+import { useScoreStats } from '../../hooks/useLiveDb'
 import { db } from '../../lib/db/schema'
 import { completeTodo } from '../../lib/db/operations'
 import { dateKey, TZ } from '../../lib/dates'
-import type { HabitLog } from '../../lib/db/types'
 
 /* ─── helpers ──────────────────────────────────────────── */
 const DAY = ['MIN', 'SEN', 'SEL', 'RAB', 'KAM', 'JUM', 'SAB']
@@ -16,20 +15,6 @@ function p2(n: number) {
   return String(n).padStart(2, '0')
 }
 
-function calcStreak(logs: HabitLog[]): number {
-  if (!logs.length) return 0
-  const dates = [...new Set(logs.filter(l => l.status === 'done').map(l => l.date))].sort()
-  if (!dates.length) return 0
-  let streak = 1, max = 1
-  for (let i = 1; i < dates.length; i++) {
-    const diff = Math.round(
-      (new Date(dates[i] + 'T12:00:00').getTime() - new Date(dates[i - 1] + 'T12:00:00').getTime()) / 86400000,
-    )
-    streak = diff === 1 ? streak + 1 : 1
-    if (streak > max) max = streak
-  }
-  return max
-}
 
 /* ─── constants ────────────────────────────────────────── */
 const SANS = 'Geist Variable, system-ui, sans-serif'
@@ -39,7 +24,6 @@ const GAP = 8
 
 /* ─── component ────────────────────────────────────────── */
 export function ReviewView() {
-  const stats = useWeeklyStats()
   const scores = useScoreStats()
 
   // Live clock
@@ -81,39 +65,6 @@ export function ReviewView() {
     return all
   }) ?? []
 
-  // Reactive Habit Logs query
-  const allLogs = useLiveQuery(() => db.habitLogs.toArray()) ?? []
-
-  // Reactive Weekly Completed Tasks query
-  const weekDone = useLiveQuery(async () => {
-    const now = new Date()
-    const startDate = dateKey(addDays(now, -6))
-    const endDate = dateKey(now)
-    const weekTodos = await db.todos
-      .filter(t => {
-        if (t.cancelledAt) return false
-        const hasDue = t.dueDate ? (t.dueDate >= startDate && t.dueDate <= endDate) : false
-        const hasSched = t.scheduledAt
-          ? (() => { const d = dateKey(new Date(t.scheduledAt!)); return d >= startDate && d <= endDate })()
-          : false
-        return hasDue || hasSched
-      })
-      .toArray()
-
-    let done = 0
-    for (let i = 0; i < 7; i++) {
-      const dk = dateKey(addDays(now, -i))
-      const day = weekTodos.filter(t =>
-        t.dueDate === dk ||
-        (t.scheduledAt ? dateKey(new Date(t.scheduledAt)) === dk : false),
-      )
-      done += day.filter(t => !!t.completedAt).length
-    }
-    return done
-  }) ?? 0
-
-  const streak = useMemo(() => calcStreak(allLogs), [allLogs])
-
   // Completed todos per period (for MINGGU / BULAN drill-down)
   const rawRangeNow = new Date()
   const zonedRangeNow = toZonedTime(rawRangeNow, TZ)
@@ -121,8 +72,6 @@ export function ReviewView() {
   const pad = (n: number) => String(n).padStart(2, '0')
   const monthStart = `${zonedRangeNow.getFullYear()}-${pad(zonedRangeNow.getMonth() + 1)}-01`
   const todayK = dateKey(rawRangeNow)
-  const weekCompleted = useCompletedTodosInRange(weekStart, todayK)
-  const monthCompleted = useCompletedTodosInRange(monthStart, todayK)
 
   // Time strings
   const zonedClock = toZonedTime(clock, TZ)
@@ -131,12 +80,9 @@ export function ReviewView() {
   const dateStr = `${DAY[zonedClock.getDay()]}, ${zonedClock.getDate()} ${MON[zonedClock.getMonth()]}`
 
   // Derived sizes
-  // 1-cell height = cell px
-  // 2-cell height = 2*cell + 1 gap
   const h1 = cell
   const h2 = cell * 2 + GAP
-
-  /* ── BACKLOG VIEW ── */
+    /* ── BACKLOG VIEW ── */
   if (showBacklog) {
     const fmtDate = (d?: string) => {
       if (!d) return '—'
@@ -189,13 +135,12 @@ export function ReviewView() {
   /* ── BREAKDOWN VIEW ── */
   if (showBreakdown) {
     const b = scores.todayBreakdown
-    const rows: { label: string; detail: string; value: number }[] = []
-    if (b.habitDone > 0) rows.push({ label: 'HABIT SELESAI', detail: `\u00d7${b.habitDone}`, value: b.habitDone * 10 })
-    if (b.todoOnTime > 0) rows.push({ label: 'TUGAS TEPAT WAKTU', detail: `\u00d7${b.todoOnTime}`, value: b.todoOnTime * 10 })
-    if (b.todoLate > 0) rows.push({ label: 'TUGAS TELAT', detail: `\u00d7${b.todoLate}`, value: b.todoLate * 5 })
-    if (b.perfect) rows.push({ label: 'PERFECT DAY', detail: '', value: 20 })
-    if (b.skipped > 0) rows.push({ label: 'SKIP HABIT', detail: `\u00d7${b.skipped}`, value: -b.skipped * 5 })
-    if (b.cancelled > 0) rows.push({ label: 'BATALKAN TUGAS', detail: `\u00d7${b.cancelled}`, value: -b.cancelled * 5 })
+    const rows = [
+      { label: 'HABIT', detail: `${b.habitDone}/${b.habitDue} SELESAI`, value: `${b.habitDue === 0 ? 0 : Math.round((b.habitDone / b.habitDue) * 100)}%` },
+      { label: 'TUGAS', detail: `${b.todoDone}/${b.todoDue} SELESAI`, value: `${b.todoDue === 0 ? 0 : Math.round((b.todoDone / b.todoDue) * 100)}%` },
+      { label: 'SKIP HABIT', detail: 'Habit dilewati hari ini', value: `skip \u00d7${b.skipped}`, isNeutral: true },
+      { label: 'TUGAS DIBATALKAN', detail: 'Dikeluarkan dari target', value: `cancel \u00d7${b.cancelled}`, isNeutral: true },
+    ]
 
     return (
       <div style={{ paddingTop: 8 }}>
@@ -227,23 +172,18 @@ export function ReviewView() {
                   fontSize: 16,
                   fontWeight: 700,
                   letterSpacing: '-0.02em',
-                  color: row.value >= 0 ? '#22c55e' : 'var(--color-accent)',
+                  color: row.isNeutral ? 'var(--color-text-muted)' : '#22c55e',
                 }}
               >
-                {row.value >= 0 ? `+${row.value}` : row.value}
+                {row.value}
               </span>
             </li>
           ))}
-          {rows.length === 0 && (
-            <p style={{ padding: '48px 0', textAlign: 'center', fontFamily: MONO, fontSize: 11, letterSpacing: '0.15em', color: 'var(--color-text-muted)' }}>
-              TIDAK ADA AKTIVITAS HARI INI
-            </p>
-          )}
         </ul>
         <div className="list-row" style={{ marginTop: 16, borderTop: '1px solid var(--color-border)', paddingTop: 14 }}>
-          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text)' }}>TOTAL</p>
+          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text)' }}>TOTAL PERSENTASE</p>
           <span style={{ fontFamily: MONO, fontSize: 22, fontWeight: 800, color: 'var(--color-text)' }}>
-            {scores.today}
+            {scores.today}%
           </span>
         </div>
       </div>
@@ -253,12 +193,14 @@ export function ReviewView() {
   /* ── PERIOD VIEW (MINGGU / BULAN) ── */
   if (openPeriod) {
     const isWeek = openPeriod === 'week'
-    const items = isWeek ? weekCompleted : monthCompleted
     const total = isWeek ? scores.week : scores.month
     const rangeStart = isWeek ? weekStart : monthStart
-    const periodHabitsDone = allLogs.filter(
-      (l) => l.status === 'done' && l.date >= rangeStart && l.date <= todayK,
-    ).length
+    
+    const historyItems = scores.history.filter((item) => {
+      if (item.target === 0) return false
+      return item.date >= rangeStart && item.date <= todayK
+    })
+
     const fmtDate = (d?: string) => {
       if (!d) return '—'
       const parts = d.split('-')
@@ -277,32 +219,52 @@ export function ReviewView() {
         <h1 style={{ marginTop: 12, fontFamily: SANS, fontSize: 24, fontWeight: 600, color: 'var(--color-text)' }}>
           {isWeek ? 'Minggu Ini' : 'Bulan Ini'}
         </h1>
-        <p style={{ marginTop: 4, fontFamily: MONO, fontSize: 11, color: 'var(--color-text-muted)' }}>
-          {isWeek ? '7 HARI TERAKHIR' : 'DARI TANGGAL 1'} · SKOR {total}
-        </p>
         <p style={{ marginTop: 4, marginBottom: 16, fontFamily: MONO, fontSize: 11, color: 'var(--color-text-muted)' }}>
-          HABIT SELESAI · {periodHabitsDone}
+          {isWeek ? '7 HARI TERAKHIR' : 'DARI TANGGAL 1'} · RATA-RATA {total}%
         </p>
-        {items.length === 0 ? (
+        {historyItems.length === 0 ? (
           <p style={{ padding: '48px 0', textAlign: 'center', fontFamily: MONO, fontSize: 11, letterSpacing: '0.15em', color: 'var(--color-text-muted)' }}>
-            BELUM ADA TUGAS DISELESAIKAN
+            BELUM ADA DATA AKTIVITAS
           </p>
         ) : (
           <ul>
-            {items.map((todo) => (
-              <li key={todo.id} className="list-row">
+            {historyItems.map((item) => (
+              <li key={item.date} className="list-row">
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 14, color: 'var(--color-text)' }}>{todo.title}</p>
+                  <p style={{ fontSize: 14, color: 'var(--color-text)' }}>{fmtDate(item.date)}</p>
                   <p style={{ marginTop: 2, fontFamily: MONO, fontSize: 10, color: 'var(--color-text-muted)' }}>
-                    DICENTANG {fmtDate(todo.completedKey)} · DUE {fmtDate(todo.dueDate)}
+                    Habit: {item.habitDone}/{item.habitDue} · Tugas: {item.todoDone}/{item.todoDue}
+                    {item.cancelled > 0 && ` · Batal: ${item.cancelled}`}
+                    {item.skipped > 0 && ` · Skip: ${item.skipped}`}
                   </p>
                 </div>
+                <span
+                  style={{
+                    fontFamily: MONO,
+                    fontSize: 16,
+                    fontWeight: 700,
+                    letterSpacing: '-0.02em',
+                    color: item.percent === 100 ? '#22c55e' : 'var(--color-text)',
+                  }}
+                >
+                  {item.percent}%
+                </span>
               </li>
             ))}
           </ul>
         )}
       </div>
     )
+  }
+
+  const getSisaLabel = () => {
+    const todoSisa = scores.todayBreakdown.todoDue - scores.todayBreakdown.todoDone
+    const habitSisa = scores.todayBreakdown.habitDue - scores.todayBreakdown.habitDone
+    const parts: string[] = []
+    if (todoSisa > 0) parts.push(`${todoSisa} todo`)
+    if (habitSisa > 0) parts.push(`${habitSisa} habit`)
+    if (parts.length > 0) return `sisa ${parts.join(' · ')}`
+    return 'PERFECT'
   }
 
   /* ── NOTHING UI GRID ── */
@@ -373,7 +335,7 @@ export function ReviewView() {
           TUGAS
         </span>
         <span style={{ fontFamily: PIXEL, fontWeight: 700, fontSize: Math.floor(cell * 0.36), color: '#000000', letterSpacing: '-0.02em', lineHeight: 1 }}>
-          {weekDone}
+          {scores.todayBreakdown.todoDone}/{scores.todayBreakdown.todoDue}
         </span>
       </div>
 
@@ -400,7 +362,7 @@ export function ReviewView() {
           HABIT
         </span>
         <span style={{ fontFamily: PIXEL, fontWeight: 700, fontSize: Math.floor(cell * 0.36), color: '#ffffff', letterSpacing: '-0.02em', lineHeight: 1 }}>
-          {stats.done}
+          {scores.todayBreakdown.habitDone}/{scores.todayBreakdown.habitDue}
         </span>
       </div>
 
@@ -428,7 +390,7 @@ export function ReviewView() {
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <p style={{ fontFamily: PIXEL, fontWeight: 300, fontSize: Math.floor(cell * 0.62), color: '#ffffff', lineHeight: 0.95, letterSpacing: '-0.04em', margin: 0 }}>
-            {streak}
+            {scores.streak}
           </p>
           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#ffffff' }}>
             <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
@@ -469,15 +431,13 @@ export function ReviewView() {
         <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>
           HARI INI
         </span>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-          <span style={{ fontFamily: PIXEL, fontWeight: 800, fontSize: Math.floor(cell * 0.8), color: '#ffffff', lineHeight: 1, letterSpacing: '-0.05em' }}>
-            {scores.today}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span style={{ fontFamily: PIXEL, fontWeight: 800, fontSize: Math.floor(cell * 0.65), color: '#ffffff', lineHeight: 1, letterSpacing: '-0.05em' }}>
+            {scores.today}%
           </span>
-          {scores.todayBreakdown.perfect && (
-            <span style={{ fontFamily: MONO, fontSize: 8, letterSpacing: '0.16em', color: '#22c55e' }}>
-              PERFECT
-            </span>
-          )}
+          <span style={{ fontFamily: MONO, fontSize: 8, letterSpacing: '0.05em', color: scores.todayBreakdown.perfect ? '#22c55e' : 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>
+            {getSisaLabel()}
+          </span>
         </div>
       </button>
 
@@ -561,7 +521,7 @@ export function ReviewView() {
           MINGGU
         </span>
         <span style={{ fontFamily: PIXEL, fontWeight: 500, fontSize: Math.floor(cell * 0.36), color: '#ffffff', letterSpacing: '-0.02em', lineHeight: 1 }}>
-          {scores.week}
+          {scores.week}%
         </span>
       </button>
 
@@ -595,7 +555,7 @@ export function ReviewView() {
           BULAN
         </span>
         <span style={{ fontFamily: PIXEL, fontWeight: 500, fontSize: Math.floor(cell * 0.36), color: '#ffffff', letterSpacing: '-0.02em', lineHeight: 1 }}>
-          {scores.month}
+          {scores.month}%
         </span>
       </button>
     </div>

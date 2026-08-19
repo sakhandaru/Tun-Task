@@ -407,14 +407,17 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
               <div className="border-t border-[var(--color-border)] pt-4">
                 <h4 className="text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase mb-2">MENYELESAIKAN TUGAS</h4>
                 <p className="text-sm text-[var(--color-text)] leading-relaxed">
-                  Cukup ketuk lingkaran di sebelah kiri tugas atau kebiasaan untuk menandai selesai. Untuk membatalkan atau menjadwal ulang ke hari esok, gunakan tombol aksi cepat di sebelah kanan.
+                  Cukup ketuk lingkaran di sebelah kiri tugas atau kebiasaan (atau langsung ketuk area teks judulnya) untuk menandai selesai. Untuk membatalkan atau menjadwal ulang ke hari esok, gunakan tombol aksi cepat di sebelah kanan.
                 </p>
               </div>
 
               <div className="border-t border-[var(--color-border)] pt-4">
-                <h4 className="text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase mb-2">SISTEM SKOR & STREAK</h4>
+                <h4 className="text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase mb-2">SISTEM SKOR PERSENTASE & STREAK</h4>
                 <p className="text-sm text-[var(--color-text)] leading-relaxed">
-                  Mendapatkan <span className="text-[var(--color-accent)] font-semibold">+10 XP</span> untuk setiap tugas atau habit yang diselesaikan. Streak dihitung dari jumlah hari beruntun Anda berhasil mencentang minimal satu kebiasaan (habit).
+                  Skor dihitung dalam **persentase tuntas harian** dari target tugas & habit yang aktif hari itu (tugas batal bersifat netral/dikeluarkan dari target, tugas skip bernilai 0%). Hari dengan target kosong diabaikan dari agregasi mingguan/bulanan.
+                </p>
+                <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                  <strong>Streak</strong> dihitung dari jumlah hari beruntun Anda mencapai target **100% PERFECT** (menyelesaikan seluruh tugas/habit yang direncanakan).
                 </p>
               </div>
             </section>
@@ -440,14 +443,18 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <span className="block text-[10px] font-mono text-[var(--color-text-muted)] uppercase">2. TUGAS + HARI / TANGGAL</span>
-                  <div className="p-3 bg-[var(--color-bg-secondary)] border border border-[var(--color-border)] rounded-xl">
+                  <span className="block text-[10px] font-mono text-[var(--color-text-muted)] uppercase">2. TUGAS + HARI / TANGGAL / BULAN</span>
+                  <div className="p-3 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl">
                     <p className="font-mono text-xs text-[var(--color-text)]">Beli kopi besok pagi</p>
                     <p className="text-[10px] text-[var(--color-text-muted)] mt-1">→ Menjadwalkan tugas untuk esok hari</p>
                   </div>
-                  <div className="p-3 bg-[var(--color-bg-secondary)] border border border-[var(--color-border)] rounded-xl">
+                  <div className="p-3 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl">
                     <p className="font-mono text-xs text-[var(--color-text)]">Potong rambut hari sabtu</p>
                     <p className="text-[10px] text-[var(--color-text-muted)] mt-1">→ Menjadwalkan tugas untuk hari Sabtu terdekat</p>
+                  </div>
+                  <div className="p-3 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl">
+                    <p className="font-mono text-xs text-[var(--color-text)]">Pangkas rambut 25 oktober</p>
+                    <p className="text-[10px] text-[var(--color-text-muted)] mt-1">→ Menjadwalkan tanggal jauh (Bahasa Indonesia & Inggris). Otomatis rollover ke tahun berikutnya jika tanggal sudah terlewat.</p>
                   </div>
                 </div>
 
