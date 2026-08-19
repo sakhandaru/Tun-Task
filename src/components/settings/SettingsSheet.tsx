@@ -10,7 +10,7 @@ interface SettingsSheetProps {
   onClose: () => void
 }
 
-type View = 'menu' | 'routines' | 'guide_user' | 'guide_nlp' | 'integrations' | 'backup_reset'
+type View = 'menu' | 'routines' | 'guide_score' | 'guide_nlp' | 'integrations' | 'backup_reset'
 
 export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   const routines = useRoutines()
@@ -167,7 +167,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
             <h2 className="text-xl font-semibold text-[var(--color-text)]">
               {view === 'menu' && 'Pengaturan'}
               {view === 'routines' && 'Paket Rutinitas'}
-              {view === 'guide_user' && 'Panduan Penggunaan'}
+              {view === 'guide_score' && 'Panduan Skor & Streak'}
               {view === 'guide_nlp' && 'Panduan Tambah Cepat'}
               {view === 'integrations' && 'Integrasi Kalender'}
               {view === 'backup_reset' && 'Cadangan & Reset'}
@@ -211,10 +211,10 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
             </button>
 
             <button
-              onClick={() => setView('guide_user')}
+              onClick={() => setView('guide_score')}
               className="w-full flex items-center justify-between py-4 text-left active:opacity-75 transition-opacity cursor-pointer"
             >
-              <span className="text-sm font-medium text-[var(--color-text)]">Panduan Penggunaan</span>
+              <span className="text-sm font-medium text-[var(--color-text)]">Panduan Skor & Streak</span>
               <span className="text-[10px] font-mono text-[var(--color-text-muted)]">LIHAT →</span>
             </button>
 
@@ -388,36 +388,37 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
           </div>
         )}
 
-        {view === 'guide_user' && (
+        {view === 'guide_score' && (
           <div className="space-y-6">
             <section className="space-y-4">
               <div>
-                <h4 className="text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase mb-2">NAVIGASI SWIPE</h4>
+                <h4 className="text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase mb-2">FORMULA PERSENTASE</h4>
                 <p className="text-sm text-[var(--color-text)] leading-relaxed">
-                  Geser layar ke kiri atau kanan untuk berpindah dengan cepat antara halaman:
+                  Skor Anda dihitung dalam **persentase tuntas harian (daily%)** berdasarkan target tugas dan habit yang aktif hari itu:
                 </p>
-                <ul className="list-disc pl-5 mt-2 space-y-1 text-xs text-[var(--color-text-muted)] font-mono uppercase">
-                  <li>Hari ini (Tugas & Habit saat ini)</li>
-                  <li>Besok (Rencana hari esok)</li>
-                  <li>Habit (Daftar semua kebiasaan aktif)</li>
-                  <li>Review (Dashboard & Widget Nothing UI)</li>
+                <div className="p-3 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl font-mono text-xs text-[var(--color-text)] mt-2">
+                  target = (habit due) + (todo due) − (todo cancel)<br />
+                  beres  = (habit selesai) + (todo selesai)
+                </div>
+                <p className="text-[11px] text-[var(--color-text-muted)] mt-2">
+                  Rumus akhir: <code>daily% = Math.round( beres / target × 100 )</code>
+                </p>
+              </div>
+
+              <div className="border-t border-[var(--color-border)] pt-4">
+                <h4 className="text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase mb-2">ATURAN & KONSEKUENSI</h4>
+                <ul className="list-disc pl-5 mt-2 space-y-2 text-xs text-[var(--color-text-muted)]">
+                  <li><strong>Habit & Todo Selesai</strong>: Masuk penuh ke pembilang (beres) dan penyebut (target).</li>
+                  <li><strong>Todo Dibatalkan (Cancel)</strong>: Bersifat <strong>netral</strong> (dikeluarkan dari target). Membatalkan tugas adalah keputusan sadar reprioritasi, bukan kegagalan.</li>
+                  <li><strong>Habit Dilewati (Skip)</strong>: Tetap dihitung dalam target (penyebut), namun bernilai 0% (tidak masuk pembilang).</li>
+                  <li><strong>Hari Tanpa Target (Target = 0)</strong>: Diabaikan secara bersih dari agregasi mingguan/bulanan agar tidak mengurangi rata-rata skor Anda.</li>
                 </ul>
               </div>
 
               <div className="border-t border-[var(--color-border)] pt-4">
-                <h4 className="text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase mb-2">MENYELESAIKAN TUGAS</h4>
+                <h4 className="text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase mb-2">PERFECT DAY STREAK</h4>
                 <p className="text-sm text-[var(--color-text)] leading-relaxed">
-                  Cukup ketuk lingkaran di sebelah kiri tugas atau kebiasaan (atau langsung ketuk area teks judulnya) untuk menandai selesai. Untuk membatalkan atau menjadwal ulang ke hari esok, gunakan tombol aksi cepat di sebelah kanan.
-                </p>
-              </div>
-
-              <div className="border-t border-[var(--color-border)] pt-4">
-                <h4 className="text-[10px] font-mono tracking-widest text-[var(--color-text-muted)] uppercase mb-2">SISTEM SKOR PERSENTASE & STREAK</h4>
-                <p className="text-sm text-[var(--color-text)] leading-relaxed">
-                  Skor dihitung dalam **persentase tuntas harian** dari target tugas & habit yang aktif hari itu (tugas batal bersifat netral/dikeluarkan dari target, tugas skip bernilai 0%). Hari dengan target kosong diabaikan dari agregasi mingguan/bulanan.
-                </p>
-                <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                  <strong>Streak</strong> dihitung dari jumlah hari beruntun Anda mencapai target **100% PERFECT** (menyelesaikan seluruh tugas/habit yang direncanakan).
+                  <strong>Streak</strong> dihitung dari jumlah hari beruntun Anda berhasil mencapai target **100% PERFECT** (menyelesaikan seluruh tugas/habit yang direncanakan). Hari tanpa target dilewati tanpa memutus streak Anda.
                 </p>
               </div>
             </section>

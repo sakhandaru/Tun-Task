@@ -8,7 +8,7 @@ export function FabPlus({ onClick, hidden }: FabPlusProps) {
 
   return (
     <div
-      className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 bg-[#1c1c1c] p-2 rounded-full border-2 border-[#3a3a3a] shadow-[0_16px_32px_rgba(0,0,0,0.8)]"
+      className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 bg-[#141414]/90 p-1.5 rounded-full border border-[var(--color-border)] shadow-xl"
       style={{
         marginBottom: 'env(safe-area-inset-bottom)',
       }}
