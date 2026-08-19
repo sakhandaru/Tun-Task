@@ -57,7 +57,6 @@ function AppContent() {
         pages={[
           <TodayView
             key="today"
-            onSelectHabit={onSelectHabit}
             onOpenSettings={() => setSettingsOpen(true)}
           />,
           <TomorrowView key="tomorrow" onSelectHabit={onSelectHabit} />,

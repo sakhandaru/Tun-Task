@@ -21,11 +21,10 @@ import {
   uncompleteTodo,
 } from '../../lib/db/operations'
 import { getMiniHeatmapDays } from '../../lib/habits/stats'
-import type { Habit, HabitLog } from '../../lib/db/types'
-import { getGCalStatus, reconnectGCal, ensureAuth, type GCalStatus } from '../../lib/gcal'
+import type { HabitLog } from '../../lib/db/types'
+import { getGCalStatus, reconnectGCal, type GCalStatus } from '../../lib/gcal'
 
 interface TodayViewProps {
-  onSelectHabit: (habit: Habit) => void
   onOpenSettings: () => void
 }
 
@@ -36,7 +35,7 @@ function logStatus(logs: HabitLog[], habitId: string): HabitLog | undefined {
 /* ─── Font constants ──── */
 const MONO = 'Geist Mono Variable, ui-monospace, monospace'
 
-export function TodayView({ onSelectHabit, onOpenSettings }: TodayViewProps) {
+export function TodayView({ onOpenSettings }: TodayViewProps) {
   const todos = useTodayTodos()
   const { habits, logs } = useTodayHabits()
   const allLogs = useAllHabitLogs()
