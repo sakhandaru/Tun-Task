@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 
 interface SwipePagesProps {
   labels: string[]
@@ -28,6 +28,17 @@ export function SwipePages({
     },
     [pages.length, onIndexChange],
   )
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const customEvent = e as CustomEvent<{ index: number }>
+      if (customEvent.detail && typeof customEvent.detail.index === 'number') {
+        goTo(customEvent.detail.index)
+      }
+    }
+    window.addEventListener('swipe_to_page', handler)
+    return () => window.removeEventListener('swipe_to_page', handler)
+  }, [goTo])
 
   const onScroll = useCallback(() => {
     const el = scrollRef.current
