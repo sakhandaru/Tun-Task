@@ -174,7 +174,6 @@ export function TodayView({ onOpenSettings }: TodayViewProps) {
       void uncompleteTodo(todo.id)
     } else {
       void completeTodo(todo.id)
-      flash('+10', 'plus')
     }
   }
 
