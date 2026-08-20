@@ -1,13 +1,76 @@
+import { useState, useMemo } from 'react'
+import { Reorder, useDragControls } from 'framer-motion'
 import { useAllHabits } from '../../hooks/useLiveDb'
+import { reorderHabits } from '../../lib/db/operations'
 import type { Habit } from '../../lib/db/types'
+import { DragHandle } from '../../components/DragHandle'
 
 interface HabitsViewProps {
   onSelectHabit: (habit: Habit) => void
   onCreateHabit: () => void
 }
 
+
+
+function DraggableHabitRow({
+  habit,
+  onSelect,
+}: {
+  habit: Habit
+  onSelect: (h: Habit) => void
+}) {
+  const dragControls = useDragControls()
+
+  return (
+    <Reorder.Item
+      value={habit}
+      dragListener={false}
+      dragControls={dragControls}
+      className="list-row"
+    >
+      <button
+        type="button"
+        onClick={() => onSelect(habit)}
+        className="flex flex-1 items-center justify-between text-left"
+      >
+        <span>
+          <p className="font-medium text-[var(--color-text)]">{habit.title}</p>
+          <p className="mt-0.5 font-mono text-[10px] text-[var(--color-text-muted)] uppercase">
+            {habit.schedule.kind === 'daily' && 'SETIAP HARI'}
+            {habit.schedule.kind === 'weekdays' && `${habit.schedule.days.length} HARI/MINGGU`}
+            {habit.schedule.kind === 'monthly' && `SETIAP TANGGAL ${habit.schedule.dayOfMonth}`}
+            {habit.schedule.kind === 'interval' && `SETIAP ${habit.schedule.intervalDays} HARI`}
+          </p>
+        </span>
+        <span className="text-[var(--color-text-muted)]">›</span>
+      </button>
+      <DragHandle onStart={(e) => dragControls.start(e)} />
+    </Reorder.Item>
+  )
+}
+
 export function HabitsView({ onSelectHabit, onCreateHabit }: HabitsViewProps) {
   const habits = useAllHabits()
+  const [habitIdsOrder, setHabitIdsOrder] = useState<string[] | null>(null)
+
+  const orderedHabits = useMemo(() => {
+    if (!habitIdsOrder) return habits
+    if (habitIdsOrder.length !== habits.length) return habits
+    const map = new Map(habits.map((h) => [h.id, h]))
+    const next: Habit[] = []
+    for (const id of habitIdsOrder) {
+      const h = map.get(id)
+      if (!h) return habits
+      next.push(h)
+    }
+    return next
+  }, [habitIdsOrder, habits])
+
+  const handleReorder = (next: Habit[]) => {
+    const nextIds = next.map((h) => h.id)
+    setHabitIdsOrder(nextIds)
+    void reorderHabits(nextIds)
+  }
 
   return (
     <div className="space-y-6 pt-2">
@@ -50,31 +113,23 @@ export function HabitsView({ onSelectHabit, onCreateHabit }: HabitsViewProps) {
         </button>
       </header>
 
-      {habits.length === 0 ? (
+      {orderedHabits.length === 0 ? (
         <p className="text-sm text-[var(--color-text-muted)]">Belum ada habit aktif.</p>
       ) : (
-        <ul>
-          {habits.map((habit) => (
-            <li key={habit.id} className="list-row">
-              <button
-                type="button"
-                onClick={() => onSelectHabit(habit)}
-                className="flex w-full items-center justify-between text-left"
-              >
-                <span>
-                  <p className="font-medium text-[var(--color-text)]">{habit.title}</p>
-                  <p className="mt-0.5 font-mono text-[10px] text-[var(--color-text-muted)] uppercase">
-                    {habit.schedule.kind === 'daily' && 'SETIAP HARI'}
-                    {habit.schedule.kind === 'weekdays' && `${habit.schedule.days.length} HARI/MINGGU`}
-                    {habit.schedule.kind === 'monthly' && `SETIAP TANGGAL ${habit.schedule.dayOfMonth}`}
-                    {habit.schedule.kind === 'interval' && `SETIAP ${habit.schedule.intervalDays} HARI`}
-                  </p>
-                </span>
-                <span className="text-[var(--color-text-muted)]">›</span>
-              </button>
-            </li>
+        <Reorder.Group
+          as="ul"
+          axis="y"
+          values={orderedHabits}
+          onReorder={handleReorder}
+        >
+          {orderedHabits.map((habit) => (
+            <DraggableHabitRow
+              key={habit.id}
+              habit={habit}
+              onSelect={onSelectHabit}
+            />
           ))}
-        </ul>
+        </Reorder.Group>
       )}
     </div>
   )

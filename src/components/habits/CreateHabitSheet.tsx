@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { db } from '../../lib/db/schema'
+import { getNextHabitSortOrder } from '../../lib/db/operations'
 const scheduleSync = () => {}
 import type { Weekday, HabitSchedule } from '../../lib/db/types'
 
@@ -72,6 +73,7 @@ export function CreateHabitSheet({ open, onClose }: CreateHabitSheetProps) {
         title: cleanTitle,
         schedule,
         createdAt: new Date().toISOString(),
+        sortOrder: await getNextHabitSortOrder(),
       })
       setTitle('')
       setScheduleKind('daily')

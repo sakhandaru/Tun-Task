@@ -16,6 +16,7 @@ export interface Todo {
   createdAt: string
   priority?: boolean
   syncedAt?: string
+  sortOrder?: number
 }
 
 export interface Habit {
@@ -25,6 +26,7 @@ export interface Habit {
   reminderTime?: string // HH:mm
   archivedAt?: string
   createdAt: string
+  sortOrder?: number
 }
 
 export type HabitLogStatus = 'done' | 'skipped' | 'missed'

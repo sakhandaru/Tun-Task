@@ -7,6 +7,34 @@ import type { Habit, HabitLog, Routine, Todo, Weekday } from './types'
 import { syncTodoToCalendar } from '../gcal'
 const scheduleSync = () => {}
 
+export async function getNextTodoSortOrder(): Promise<number> {
+  const lastTodo = await db.todos.orderBy('sortOrder').last()
+  return (lastTodo?.sortOrder ?? -1) + 1
+}
+
+export async function getNextHabitSortOrder(): Promise<number> {
+  const lastHabit = await db.habits.orderBy('sortOrder').last()
+  return (lastHabit?.sortOrder ?? -1) + 1
+}
+
+export async function reorderTodos(ids: string[]): Promise<void> {
+  await db.transaction('rw', db.todos, async () => {
+    for (let i = 0; i < ids.length; i++) {
+      await db.todos.update(ids[i], { sortOrder: i })
+    }
+  })
+  scheduleSync()
+}
+
+export async function reorderHabits(ids: string[]): Promise<void> {
+  await db.transaction('rw', db.habits, async () => {
+    for (let i = 0; i < ids.length; i++) {
+      await db.habits.update(ids[i], { sortOrder: i })
+    }
+  })
+  scheduleSync()
+}
+
 export async function createTodoFromParsed(parsed: ParsedTodo): Promise<Todo> {
   const todo: Todo = {
     id: crypto.randomUUID(),
@@ -15,6 +43,7 @@ export async function createTodoFromParsed(parsed: ParsedTodo): Promise<Todo> {
     scheduledAt: parsed.scheduledAt,
     createdAt: new Date().toISOString(),
     priority: parsed.priority,
+    sortOrder: await getNextTodoSortOrder(),
   }
   await db.todos.add(todo)
   void syncTodoToCalendar(todo)
@@ -29,6 +58,7 @@ export async function createHabitFromParsed(parsed: ParsedHabit): Promise<Habit>
     schedule: parsed.schedule,
     reminderTime: parsed.reminderTime,
     createdAt: new Date().toISOString(),
+    sortOrder: await getNextHabitSortOrder(),
   }
   await db.habits.add(habit)
   scheduleSync()
@@ -140,6 +170,9 @@ export async function loadRoutineItems(routineId: string): Promise<void> {
   if (!routine) return
   const today = todayKey()
 
+  const nextOrder = await getNextTodoSortOrder()
+  let max = nextOrder - 1
+
   for (const item of routine.items) {
     let scheduledAt: string | undefined
     if (item.scheduledTime) {
@@ -155,6 +188,7 @@ export async function loadRoutineItems(routineId: string): Promise<void> {
       priority: item.priority,
       scheduledAt,
       createdAt: new Date().toISOString(),
+      sortOrder: ++max,
     })
   }
   scheduleSync()

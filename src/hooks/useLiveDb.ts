@@ -43,10 +43,11 @@ export function useTodayTodos() {
     filtered.sort((a, b) => {
       if (!a.completedAt && b.completedAt) return -1
       if (a.completedAt && !b.completedAt) return 1
-      
-      if (a.priority && !b.priority) return -1
-      if (!a.priority && b.priority) return 1
-      
+
+      const oa = typeof a.sortOrder === 'number' ? a.sortOrder : 0
+      const ob = typeof b.sortOrder === 'number' ? b.sortOrder : 0
+      if (oa !== ob) return oa - ob
+
       return (b.createdAt ?? '').localeCompare(a.createdAt ?? '')
     })
     return filtered
@@ -60,13 +61,28 @@ export function useTodayHabits() {
     const due = all.filter((h) => isHabitDueToday(h, todayDate))
     const today = todayKey()
     const todayLogs = await db.habitLogs.where('date').equals(today).toArray()
+    due.sort((a, b) => {
+      const oa = typeof a.sortOrder === 'number' ? a.sortOrder : 0
+      const ob = typeof b.sortOrder === 'number' ? b.sortOrder : 0
+      if (oa !== ob) return oa - ob
+      return b.createdAt.localeCompare(a.createdAt)
+    })
     return { habits: due, logs: todayLogs }
   })
   return result ?? { habits: [], logs: [] }
 }
 
 export function useAllHabits() {
-  return useLiveQuery(() => db.habits.filter((h) => !h.archivedAt).toArray()) ?? []
+  return useLiveQuery(async () => {
+    const all = await db.habits.filter((h) => !h.archivedAt).toArray()
+    all.sort((a, b) => {
+      const oa = typeof a.sortOrder === 'number' ? a.sortOrder : 0
+      const ob = typeof b.sortOrder === 'number' ? b.sortOrder : 0
+      if (oa !== ob) return oa - ob
+      return b.createdAt.localeCompare(a.createdAt)
+    })
+    return all
+  }) ?? []
 }
 
 export function useAllHabitLogs() {

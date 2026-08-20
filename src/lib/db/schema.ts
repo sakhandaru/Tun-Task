@@ -15,6 +15,12 @@ export class TunTaskDB extends Dexie {
       habitLogs: 'id, [habitId+date], habitId, date',
       routines: 'id',
     })
+    this.version(2).stores({
+      todos: 'id, dueDate, completedAt, createdAt, sortOrder',
+      habits: 'id, archivedAt, createdAt, sortOrder',
+      habitLogs: 'id, [habitId+date], habitId, date',
+      routines: 'id',
+    })
   }
 }
 

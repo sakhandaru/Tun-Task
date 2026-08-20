@@ -1,10 +1,13 @@
 interface FabPlusProps {
   onClick: () => void
   hidden?: boolean
+  activePageIndex?: number
 }
 
-export function FabPlus({ onClick, hidden }: FabPlusProps) {
+export function FabPlus({ onClick, hidden, activePageIndex = 0 }: FabPlusProps) {
   if (hidden) return null
+
+  const isReviewPage = activePageIndex === 3
 
   return (
     <div
@@ -29,13 +32,18 @@ export function FabPlus({ onClick, hidden }: FabPlusProps) {
       <button
         type="button"
         onClick={() => {
-          window.dispatchEvent(new CustomEvent('swipe_to_page', { detail: { index: 3 } }))
+          const targetIndex = isReviewPage ? 0 : 3
+          window.dispatchEvent(new CustomEvent('swipe_to_page', { detail: { index: targetIndex } }))
         }}
         className="flex h-12 w-12 items-center justify-center rounded-full bg-[#d71921] text-[#ffffff] transition active:scale-95 hover:opacity-95 cursor-pointer"
-        aria-label="Buka Review"
+        aria-label={isReviewPage ? "Buka Today" : "Buka Review"}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <path d="M5 12h14" strokeLinecap="round" />
+          {isReviewPage ? (
+            <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
+          ) : (
+            <path d="M5 12h14" strokeLinecap="round" />
+          )}
         </svg>
       </button>
     </div>

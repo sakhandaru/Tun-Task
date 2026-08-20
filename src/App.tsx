@@ -21,6 +21,7 @@ function AppContent() {
   const [createHabitOpen, setCreateHabitOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [selectedHabit, setSelectedHabit] = useState<Habit | null>(null)
+  const [activePageIndex, setActivePageIndex] = useState(0)
 
   useEffect(() => {
     initGoogleAuth()
@@ -64,10 +65,15 @@ function AppContent() {
           <ReviewView key="review" />,
         ]}
         defaultIndex={0}
+        onIndexChange={setActivePageIndex}
       />
 
       <Suspense fallback={null}>
-        <FabPlus onClick={() => setQuickAddOpen(true)} hidden={quickAddOpen || !!selectedHabit} />
+        <FabPlus
+          onClick={() => setQuickAddOpen(true)}
+          hidden={quickAddOpen || !!selectedHabit}
+          activePageIndex={activePageIndex}
+        />
         <SpotlightModal
           open={quickAddOpen}
           onClose={() => setQuickAddOpen(false)}

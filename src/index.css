@@ -184,4 +184,28 @@
   .sheet-panel {
     animation: slideUp 0.25s ease-out;
   }
+
+  .drag-handle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 2px;
+    border-radius: 8px;
+    border: none;
+    background: none;
+    color: var(--color-text-muted);
+    cursor: grab;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.15s, background 0.15s;
+  }
+
+  .drag-handle:hover {
+    color: var(--color-text);
+    background: var(--color-surface);
+  }
+
+  .drag-handle:active {
+    cursor: grabbing;
+  }
 }

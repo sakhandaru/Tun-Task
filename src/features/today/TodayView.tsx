@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { AnimatePresence, motion, Reorder, useDragControls } from 'framer-motion'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
 import { HabitMiniHeatmap } from '../../components/habits/HabitMiniHeatmap'
 import { ChallengeModal } from '../../components/ChallengeModal'
+import { DragHandle } from '../../components/DragHandle'
 import {
   useAllHabitLogs,
   useRoutines,
@@ -15,13 +16,14 @@ import {
   cancelTodo,
   completeTodo,
   loadRoutineItems,
+  reorderTodos,
   skipHabit,
   snoozeTodo,
   toggleHabitDone,
   uncompleteTodo,
 } from '../../lib/db/operations'
 import { getMiniHeatmapDays } from '../../lib/habits/stats'
-import type { HabitLog } from '../../lib/db/types'
+import type { HabitLog, Todo } from '../../lib/db/types'
 import { getGCalStatus, reconnectGCal, type GCalStatus } from '../../lib/gcal'
 
 interface TodayViewProps {
@@ -30,6 +32,105 @@ interface TodayViewProps {
 
 function logStatus(logs: HabitLog[], habitId: string): HabitLog | undefined {
   return logs.find((l) => l.habitId === habitId)
+}
+
+interface TodoRowProps {
+  todo: Todo
+  onToggle: (todo: Todo) => void
+}
+
+function CompletedTodoRow({ todo, onToggle }: TodoRowProps) {
+  return (
+    <li className="list-row group">
+      <button
+        type="button"
+        onClick={() => onToggle(todo)}
+        className="check-circle shrink-0 check-circle--done"
+        aria-label="Batalkan"
+      />
+      <div
+        onClick={() => onToggle(todo)}
+        className="min-w-0 flex-1 cursor-pointer"
+      >
+        <p className="leading-snug line-through text-[var(--color-text-muted)]" style={{ fontSize: 15 }}>
+          {todo.title}
+        </p>
+        <p style={{
+          fontFamily: MONO,
+          fontSize: 10,
+          letterSpacing: '0.1em',
+          color: 'var(--color-text-muted)',
+          marginTop: 3,
+        }}>
+          {todo.scheduledAt ? formatDisplayTime(new Date(todo.scheduledAt)) : 'Hari ini'}
+          {' · SELESAI'}
+        </p>
+      </div>
+    </li>
+  )
+}
+
+interface DraggableTodoRowProps {
+  todo: Todo
+  onToggle: (todo: Todo) => void
+  onCancel: (id: string) => void
+  onSnooze: (id: string) => void
+}
+
+function DraggableTodoRow({ todo, onToggle, onCancel, onSnooze }: DraggableTodoRowProps) {
+  const dragControls = useDragControls()
+
+  return (
+    <Reorder.Item
+      value={todo}
+      dragListener={false}
+      dragControls={dragControls}
+      className="list-row group"
+    >
+      <button
+        type="button"
+        onClick={() => onToggle(todo)}
+        className="check-circle shrink-0"
+        aria-label="Selesai"
+      />
+      <div
+        onClick={() => onToggle(todo)}
+        className="min-w-0 flex-1 cursor-pointer"
+      >
+        <p className={`leading-snug ${todo.priority ? 'font-semibold' : ''}`} style={{ fontSize: 15 }}>
+          {todo.title}
+        </p>
+        <p style={{
+          fontFamily: MONO,
+          fontSize: 10,
+          letterSpacing: '0.1em',
+          color: 'var(--color-text-muted)',
+          marginTop: 3,
+        }}>
+          {todo.scheduledAt ? formatDisplayTime(new Date(todo.scheduledAt)) : 'Hari ini'}
+        </p>
+      </div>
+      <div className="flex gap-4">
+        <button
+          type="button"
+          onClick={() => onCancel(todo.id)}
+          style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.12em', padding: '4px 10px', borderRadius: '9999px', background: 'var(--color-accent)', color: '#ffffff', border: 'none' }}
+          className="shrink-0 hover:opacity-90 active:scale-95 transition-all"
+        >
+          BATAL
+        </button>
+        <button
+          type="button"
+          onClick={() => onSnooze(todo.id)}
+          style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.12em', padding: '4px 10px', borderRadius: '9999px', background: 'var(--color-text)', color: 'var(--color-bg)', border: 'none' }}
+          className="shrink-0 hover:opacity-90 active:scale-95 transition-all"
+        >
+          BESOK
+        </button>
+      </div>
+      <DragHandle onStart={(e) => dragControls.start(e)} />
+    </Reorder.Item>
+  )
 }
 
 /* ─── Font constants ──── */
@@ -41,6 +142,41 @@ export function TodayView({ onOpenSettings }: TodayViewProps) {
   const allLogs = useAllHabitLogs()
   const routines = useRoutines()
   const today = todayKey()
+
+  const [todoIdsOrder, setTodoIdsOrder] = useState<string[] | null>(null)
+
+  const activeTodos = useMemo(() => {
+    const rawActive = todos.filter((t) => !t.completedAt)
+    if (!todoIdsOrder) return rawActive
+    if (todoIdsOrder.length !== rawActive.length) return rawActive
+    const map = new Map(rawActive.map((t) => [t.id, t]))
+    const next: Todo[] = []
+    for (const id of todoIdsOrder) {
+      const t = map.get(id)
+      if (!t) return rawActive
+      next.push(t)
+    }
+    return next
+  }, [todoIdsOrder, todos])
+
+  const completedTodos = useMemo(() => {
+    return todos.filter((t) => !!t.completedAt)
+  }, [todos])
+
+  const handleReorderTodos = (next: Todo[]) => {
+    const nextIds = next.map((t) => t.id)
+    setTodoIdsOrder(nextIds)
+    void reorderTodos(nextIds)
+  }
+
+  const handleToggleTodo = (todo: Todo) => {
+    if (todo.completedAt) {
+      void uncompleteTodo(todo.id)
+    } else {
+      void completeTodo(todo.id)
+      flash('+10', 'plus')
+    }
+  }
 
   // Live ticking clock state
   const [clock, setClock] = useState(() => new Date())
@@ -307,72 +443,38 @@ export function TodayView({ onOpenSettings }: TodayViewProps) {
             Tidak ada tugas hari ini
           </p>
         ) : (
-          <ul>
-            {todos.map((todo) => (
-              <li key={todo.id} className="list-row group">
-                <button
-                  type="button"
-                  onClick={() => {
-                  if (todo.completedAt) {
-                    void uncompleteTodo(todo.id)
-                  } else {
-                    void completeTodo(todo.id)
-                    flash('+10', 'plus')
-                  }
-                }}
-                  className={`check-circle shrink-0 ${todo.completedAt ? 'check-circle--done' : ''}`}
-                  aria-label={todo.completedAt ? 'Batalkan' : 'Selesai'}
-                />
-                <div
-                  onClick={() => {
-                    if (todo.completedAt) {
-                      void uncompleteTodo(todo.id)
-                    } else {
-                      void completeTodo(todo.id)
-                      flash('+10', 'plus')
-                    }
-                  }}
-                  className="min-w-0 flex-1 cursor-pointer"
-                >
-                  <p className={`leading-snug ${todo.priority ? 'font-semibold' : ''} ${
-                    todo.completedAt ? 'line-through text-[var(--color-text-muted)]' : ''
-                  }`} style={{ fontSize: 15 }}>
-                    {todo.title}
-                  </p>
-                  <p style={{
-                    fontFamily: MONO,
-                    fontSize: 10,
-                    letterSpacing: '0.1em',
-                    color: 'var(--color-text-muted)',
-                    marginTop: 3,
-                  }}>
-                    {todo.scheduledAt ? formatDisplayTime(new Date(todo.scheduledAt)) : 'Hari ini'}
-                    {todo.completedAt && ' · SELESAI'}
-                  </p>
-                </div>
-                {!todo.completedAt && (
-                  <div className="flex gap-4">
-                    <button
-                      type="button"
-                      onClick={() => handleCancelTodo(todo.id)}
-                      style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.12em', padding: '4px 10px', borderRadius: '9999px', background: 'var(--color-accent)', color: '#ffffff', border: 'none' }}
-                      className="shrink-0 hover:opacity-90 active:scale-95 transition-all"
-                    >
-                      BATAL
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSnooze(todo.id)}
-                      style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.12em', padding: '4px 10px', borderRadius: '9999px', background: 'var(--color-text)', color: 'var(--color-bg)', border: 'none' }}
-                      className="shrink-0 hover:opacity-90 active:scale-95 transition-all"
-                    >
-                      BESOK
-                    </button>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
+          <div className="space-y-4">
+            {activeTodos.length > 0 && (
+              <Reorder.Group
+                as="ul"
+                axis="y"
+                values={activeTodos}
+                onReorder={handleReorderTodos}
+              >
+                {activeTodos.map((todo) => (
+                  <DraggableTodoRow
+                    key={todo.id}
+                    todo={todo}
+                    onToggle={handleToggleTodo}
+                    onCancel={handleCancelTodo}
+                    onSnooze={handleSnooze}
+                  />
+                ))}
+              </Reorder.Group>
+            )}
+
+            {completedTodos.length > 0 && (
+              <ul className="space-y-2 border-t border-[var(--color-border)] pt-4">
+                {completedTodos.map((todo) => (
+                  <CompletedTodoRow
+                    key={todo.id}
+                    todo={todo}
+                    onToggle={handleToggleTodo}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
         )}
       </section>
 
